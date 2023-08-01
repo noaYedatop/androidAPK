@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "artifactType": {
+    "type": "APK",
+    "kind": "Directory"
+  },
+  "applicationId": "com.Synqpos",
+  "variantName": "office3Release",
+  "elements": [
+    {
+      "type": "SINGLE",
+      "filters": [],
+      "versionCode": 54,
+      "versionName": "v3.0.4",
+      "outputFile": "app-office3-release.apk"
+    }
+  ]
+}

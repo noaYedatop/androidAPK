@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "413704973193",
+    "project_id": "yedatop-93f6a",
+    "storage_bucket": "yedatop-93f6a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:413704973193:android:bb49b435428d964df28f58",
+        "android_client_info": {
+          "package_name": "com.Synqpos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "413704973193-5qmrod9u3a598p3785r32o221r3hi0nb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAM_ixNi-pah-O9GAABOili80mKFsjtqw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "413704973193-5qmrod9u3a598p3785r32o221r3hi0nb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

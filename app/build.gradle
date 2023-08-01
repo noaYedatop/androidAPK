@@ -1,0 +1,216 @@
+apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
+apply plugin: 'com.google.firebase.crashlytics'
+
+android {
+    flavorDimensions "default"//"liv", "android","office1"
+
+    signingConfigs {
+        release {
+            keyAlias 'key0'
+            keyPassword '123456'
+            storeFile file('../app/temp.jks')
+            storePassword '123456'
+        }
+        debug {
+            keyAlias 'key0'
+            keyPassword '123456'
+            storeFile file('../app/temp.jks')
+            storePassword '123456'
+        }
+    }
+    compileSdkVersion 29
+    buildToolsVersion '30.0.2'
+    defaultConfig {
+        applicationId "com.yedatop.maytal"
+        minSdkVersion 24
+        targetSdkVersion 29
+        versionCode 54
+        versionName "v3.0.4"
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    lintOptions {
+        abortOnError false
+    }
+
+    productFlavors {
+        office1 {
+//            dimension "office1"
+            buildConfigField ('String', 'DOMAIN', '"office1"')
+            applicationId "com.yedatop.maytal"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/main/AndroidManifest.xml"
+                }
+            }
+//            manifest.srcFile "main/AndroidManifest.xml"
+        }
+        liv1 {
+//            dimension "liv1s"
+            buildConfigField ('String', 'DOMAIN', '"liv1"')
+            applicationId "com.yedatop.maytal"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/main/AndroidManifest.xml"
+                }
+            }
+//            manifest.srcFile "main/AndroidManifest.xml"
+        }
+        android {
+//            dimension "android"
+
+            buildConfigField ('String', 'DOMAIN', '"android"')
+            applicationId "com.Synqpos"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/main/AndroidManifest.xml"
+                }
+            }
+//            manifest.srcFile "main/AndroidManifest.xml"
+        }
+        office3 {
+//            dimension "android"
+
+            buildConfigField ('String', 'DOMAIN', '"office3"')
+            applicationId "com.Synqpos"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/main/AndroidManifest.xml"
+                }
+            }
+//            manifest.srcFile "main/AndroidManifest.xml"
+        }
+        liv {
+            buildConfigField ('String', 'DOMAIN', '"liv"')
+//            dimension "liv"
+
+            applicationId "com.yedatop.maytal"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/liv/AndroidManifest.xml"
+                }
+            }
+        }
+        dangot {
+            buildConfigField ('String', 'DOMAIN', '"dangot"')
+//            dimension "liv"
+
+            applicationId "com.Synqpos"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/dangot/AndroidManifest.xml"
+                }
+            }
+        }
+        dangot1 {
+            buildConfigField ('String', 'DOMAIN', '"dangot1"')
+//            dimension "liv"
+
+            applicationId "com.Synqpos"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/dangot1/AndroidManifest.xml"
+                }
+            }
+        }
+        dangotandroid {
+            buildConfigField ('String', 'DOMAIN', '"dangotandroid"')
+//            dimension "liv"
+
+            applicationId "com.Synqpos"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/dangot1/AndroidManifest.xml"
+                }
+            }
+        }
+        dangotandroid1 {
+            buildConfigField ('String', 'DOMAIN', '"dangotandroid1"')
+//            dimension "liv"
+            applicationId "com.Synqpos"
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/dangot1/AndroidManifest.xml"
+                }
+            }
+        }
+     }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+};
+configurations {
+    implementation.exclude group: 'com.google.zxing'
+}
+
+dependencies {
+    api fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'androidx.appcompat:appcompat:1.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    implementation 'com.sunmi:sunmiui:latest.release'
+
+    api files('libs/printer_library.jar')
+    implementation 'org.apache.commons:commons-lang3:3.6'
+    implementation 'com.github.mik3y:usb-serial-for-android:3.3.1'
+    implementation 'com.pierfrancescosoffritti.androidyoutubeplayer:core:10.0.5'
+
+    implementation 'com.github.AhmedElsayed94:SunmiPrinterSdk:1.0.0'
+
+    implementation 'com.squareup.okhttp3:okhttp:3.10.0'
+    implementation 'com.pixplicity.sharp:library:1.1.0'
+
+    implementation 'com.squareup.picasso:picasso:2.71828'
+
+    // Import the BoM for the Firebase platform
+    implementation platform('com.google.firebase:firebase-bom:28.0.1')
+
+    // Declare the dependencies for the Crashlytics and Analytics libraries
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation 'com.google.firebase:firebase-crashlytics'
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation files('libs/NeoStraElectronicSDK_V1.1.jar')
+    implementation files('libs/iminPrinterSDK.jar')
+    implementation files('libs/IminLibs1.0.15.jar')
+    implementation files('libs/POSSDKForAndroid2072.jar')
+    implementation files('libs/com.posbank.printer.jar')
+    //implementation files('libs/urovosdkLibs-v64.aar')
+
+
+    implementation files('libs/platform_sdk_v4.1.0326.jar')
+    implementation 'me.dm7.barcodescanner:zxing:1.9.13'
+
+
+
+    //    implementation 'com.github.urovosamples:usdk:4.1.5'
+//    implementation files('libs/platform_sdk_v4.2.0520.jar')
+
+//    api files('libs/core-3.3.0.jar')
+
+}

@@ -1,0 +1,256 @@
+
+<style>
+
+table{
+	font-size:unset !important;
+}
+div[ng-controller="Client as clnt"]{
+	/*background: red;*/
+	visibility: hidden !important;
+}
+.container_login_form{
+	width: 80% !important;
+}
+.TableInside tr{
+    height: 50px !important;
+}
+.c2 input{
+width: 400px !important;
+}
+.c2 select{
+width: 400px !important;
+}
+.c3{
+	/*button*/
+}
+.stat.btn {
+    width: 60% !important;
+}
+
+/*no class name when selecting kupa amounta*/
+
+.container_pop .fa-times{
+	top: 125px !important;;
+    left: 102px !important;;
+}
+
+#fastclick label{
+	color: unset !important;; 
+    top: 47px !important;;
+	         font-size: unset !important;;
+	         right: unset !important;
+             text-align: center !important;;;
+}
+
+.result .fa-check-circle{
+	font-size: unset !important;
+}
+
+.curr_btn{
+	    bottom: 58px  !important;;
+    width: 100%  !important;;
+    left: 1px  !important;;
+        z-index: 99  !important;;
+}
+.calc_area{
+	    position: absolute !important;
+    bottom: 37px  !important;;
+    left: 0  !important;;
+
+}
+#result_calc{
+	height: 40px  !important;;
+}
+
+.inner_calc input[type=button] {
+    font-size: unset !important;;
+    height:unset !important;
+    
+}
+.inner_calc {
+	font-size: unset !important;
+}
+
+.inner_calc td {
+	height: 35px !important;
+}
+.rightside{
+	width: 100%  !important;;
+}
+.leftside{
+	width: 100%  !important;;
+}
+.leftside table{
+	    position: absolute  !important;;
+    width: 100%  !important;;
+    /*font-size: 150%
+    /* margin-top: 3%; */
+    top: 90px  !important;;;
+    left: 1px  !important;;;
+}
+.cale_area{
+	    height: 231px !important;
+    width: 100% !important;;
+}
+.calc_result{
+	height: unset !important;  
+}
+.left{
+	float: unset  !important;;
+}
+.details_area{
+	height: 160px  !important;;
+	position: absolute  !important;;; 
+    top: 120px  !important;;;
+    left: 1px  !important;;;
+}
+.plusminus{
+	width: unset !important;
+}
+td .leac111111 {
+	    min-width: 10px !important;
+}
+.active .text_center{
+	width: 30px !important
+}
+td {
+     min-width: unset !important; 
+}
+td p .ng-binding{
+	width: 100px !important
+	    text-align: right !important;
+}
+.details_title th{
+	width: 11px !important;
+}
+input[value="משקל"]{
+	    padding-bottom: unset !important;
+     background-image: unset !important;
+     	    padding-top: unset !important;
+
+}
+input[value='משקל ללא מע"מ']{
+	    padding-bottom: unset !important;
+     background-image: unset !important;
+     	    padding-top: unset !important;
+
+}
+input[value="משקל"]{
+	    padding-bottom: unset !important;
+	    padding-top: unset !important;
+     background-image: unset !important;
+}
+
+input[name="add_category"]{
+	  padding-bottom: unset !important;
+	  	    padding-top: unset !important;
+
+     background-image: unset !important;
+}
+.abso{
+	height: 374px !important;
+	width: 100% !important;
+}
+
+.peulot.peulot2{
+	bottom: 43px !important;
+}
+.peulot {
+    height: 20px !important;;
+}
+.peulot input, .peulot button
+.peulot2 input, .peulot button{
+	font-size: 12px !important;
+}
+
+.popup{
+    width: 100%;
+    left: unset !important;;
+     margin-top: unset !important; 
+     left: unset !important;
+     top: unset !important;
+     width:unset !important;
+     height: unset !important;
+ }
+
+ h3 {
+     font-size:unset !important;
+}
+#open_kupa div div {
+     width: unset !important;
+}
+.peulot{
+	bottom: 0px !important;
+}
+.peulot.peulot2{
+bottom: 25px !important;
+}
+.sum_area {
+	height: unset !important;
+}
+.sum_area .right.inline{
+	
+	font-size: 10px !important;
+}
+
+.newrow2{
+font-size: 125% !important;
+}
+.sum_area .right.inline{
+	width: 100% !important;
+	height: 42% !important;
+	font-size: unset !important;
+}
+.newrow1 {
+    height: 20px !important;;
+    width: 100% !important;;
+}
+.block {
+    display: block !important;;;
+    width: 100px !important;;
+    left: 18px !important;;
+    top: 0px !important;;
+    position: absolute !important;;
+}
+
+.curr_btn{
+	height: 31px !important;
+}
+.curr_btn i {
+
+    font-size: 24px !important;;
+}
+.left.inline{
+    width: 100% !important;;
+    display: block !important;;
+}
+.details_area tr{
+	height: unset !important;
+}
+.leftside table{
+	    margin-top: 0% !important;
+}
+.active td p{
+	height: unset !important;
+}
+#cat2 table{
+	top: 0px !important;
+}
+.details_area tr {
+    line-height: 30px !important;
+}
+
+.left
+.right
+{
+	font-size: unset !important;
+}
+.left.inline .newrow2{
+	    width: 332px !important;
+
+}
+
+.left.inline .newrow2 div{
+    margin-right: 30px !important;
+}
+</style>

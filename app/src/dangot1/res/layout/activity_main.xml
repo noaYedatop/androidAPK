@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:id="@+id/root_view"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <!-- The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc. -->
+
+    <!-- This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows. -->
+
+    <ImageView
+        android:id="@+id/img"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
+
+
+
+<!--    <WebView-->
+<!--        android:id="@+id/webReciept"-->
+<!--        android:background="@color/FF3C00"-->
+<!--        android:layout_width="350dp"-->
+<!--        android:layout_height="match_parent"-->
+<!--        android:visibility="invisible" >-->
+<!--    </WebView>-->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        />
+    <EditText
+        android:id="@+id/input_barcode"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:cursorVisible="false"
+        >
+    </EditText>
+    <WebView
+        android:id="@+id/fullscreen_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottom"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        />
+    <LinearLayout
+        android:id="@+id/bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnFunctions"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="go to functions" />
+
+        <Button
+            android:id="@+id/btnTestPrint"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="test print" />
+
+        <Button
+            android:id="@+id/btnDummyInvoice"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Dummy invoice" />
+
+        <Button
+            android:id="@+id/btnDummyPayment"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Dummy Pay" />
+
+        <EditText
+            android:id="@+id/etBarcode"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvOut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:padding="20dp"
+        android:textColor="@color/black"
+        android:visibility="gone"
+    />
+
+    <LinearLayout
+        android:id="@+id/printOutput"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="@color/white"
+        android:orientation="vertical"
+        android:visibility="gone" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:id="@+id/reload">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:src="@drawable/logo2"
+            android:id="@+id/logo"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="בעיות גישה, לחץ לטעינה מחדש."
+            android:layout_below="@id/logo"
+            android:visibility="gone"
+            android:layout_centerHorizontal="true"
+            android:id="@+id/reload_txt">
+
+        </TextView>
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/fullscreen_content_controls"
+            style="?metaButtonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:background="@color/black_overlay"
+            android:orientation="horizontal"
+            tools:ignore="UselessParent">
+
+        </LinearLayout>
+    </FrameLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:id="@+id/progress"
+        android:visibility="gone">
+    <ProgressBar
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        />
+    </RelativeLayout>
+
+    <FrameLayout
+        android:id="@+id/webReciept"
+        android:background="@android:color/transparent"
+        android:layout_width="350dp"
+        android:layout_height="match_parent"
+        android:visibility="invisible"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:id="@+id/display"
+        android:background="@android:color/transparent" />
+
+
+    <me.dm7.barcodescanner.zxing.ZXingScannerView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/barcode_scanner"
+        android:visibility="gone" />
+
+</RelativeLayout>
