@@ -1,10 +1,5 @@
 package com.credix.pinpaddriverwithandroidusage;
 
-import static android.view.ViewGroup.FOCUS_AFTER_DESCENDANTS;
-import static android.view.ViewGroup.FOCUS_BLOCK_DESCENDANTS;
-
-import static POSSDK.POSSDK.CutPartAfterFeed;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -17,6 +12,11 @@ import android.device.ScanManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+
 import android.graphics.Rect;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
@@ -29,14 +29,12 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.provider.MediaStore;
 import android.text.Editable;
-import android.text.Layout;
-import android.text.StaticLayout;
-import android.text.TextPaint;
 import android.text.TextWatcher;
 import android.util.Base64;
 import android.util.Log;
 import android.util.Pair;
 import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -60,8 +58,8 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
+//import androidx.compose.ui.text.font.Font;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
@@ -73,15 +71,14 @@ import com.credix.pinpaddriverwithandroidusage.model.EnvPaymentItem;
 import com.credix.pinpaddriverwithandroidusage.receiver.UsbDeviceReceiver;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+//import com.google.firebase.firestore.local.MemoryPersistence;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 //import com.google.zxing.Result;
 import com.google.zxing.*;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.oned.Code128Writer;
-import com.google.zxing.qrcode.QRCodeWriter;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -102,9 +99,28 @@ import com.rt.printerlibrary.setting.BarcodeSetting;
 import com.rt.printerlibrary.setting.BitmapSetting;
 import com.rt.printerlibrary.setting.CommonSetting;
 //import com.urovo.sdk.scanner.InnerScannerImpl;
+//import com.urovo.urovo.install.InstallManagerImpl;
 import com.wisepay.pinpad.Api;
-import POSAPI.*;
-//import com.urovo.sdk.*;
+import com.urovo.sdk.*;
+//import com.urovo.sdk.system.SystemProviderImpl;
+
+
+import org.eclipse.paho.mqttv5.client.*;
+import org.eclipse.paho.mqttv5.client.MqttClient;
+import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
+import org.eclipse.paho.mqttv5.client.persist.MemoryPersistence;
+
+import org.eclipse.paho.mqttv5.common.MqttException;
+import org.eclipse.paho.mqttv5.common.MqttMessage;
+import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
+import org.eclipse.paho.mqttv5.client.MqttCallback;
+
+
+import jpos.JposException;
+import jpos.POSPrinter;
+import jpos.POSPrinterConst;
+import jpos.events.DataEvent;
+import jpos.events.DataListener;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -112,12 +128,13 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+
+
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidParameterException;
 import java.sql.Driver;
@@ -128,13 +145,13 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import POSSDK.POSSDK;
 import android_serialport_api.SerialPort;
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 import okhttp3.MediaType;
@@ -143,11 +160,11 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import woyou.aidlservice.jiuiv5.IWoyouService;
-
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
+
 public class MainActivity extends BaseActivity implements View.OnClickListener , TextWatcher , ZXingScannerView.ResultHandler {
     BaseApp baseApp;
     public static final String TAG = "JS LOG";
@@ -200,6 +217,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     private View mControlsView;
     public WebView webView;
+
     private boolean mVisible;
 
     private int fontSize = 25; // was 30
@@ -411,53 +429,101 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     }
 
-    //CS600--------------------------------------------------------------------------------------------
-    private double getFromUsbWeightCS600(){
+//    //CS600--------------------------------------------------------------------------------------------
+//    private double getFromUsbWeightCS600(){
+//
+//        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+//        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+//        if (availableDrivers.isEmpty()) {
+//            return -1;
+//        }
+//
+//        // Open a connection to the first available driver.
+//        UsbSerialDriver driver = availableDrivers.get(0);
+//        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+//        if (connection == null) {
+//            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+//            return -1;
+//        }
+//        try{
+//            int usbSerialPort = 9600;
+//            UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+//            port.open(connection);
+//
+//            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+//
+//
+//            byte[] buf1 = new byte[2048];
+//            int aa;
+//            do{
+//                aa=port.read(buf1,250);
+//            }while (aa>0);
+//            port.write("w\r\n".getBytes(), 250);//5050
+//            byte[] buf = new byte[2048];
+//            // Thread.sleep(1000);
+//
+//            int len = port.read(buf, 250);//3500
+//            if (len < 3)
+//                return -1;
+//            Log.i("UDB, ",new String(buf));
+//            String  weightStr = new String(buf).replace("\r","").replace("\n","").replace("g","");
+//            String ss = weightStr.substring(0, 6);
+//            double  weight  = new Double(ss);
+//            return  weight;
+//
+//
+//        }catch(Exception e){
+//            return -1;
+//        }
+//    }
+UsbSerialPort port;
+//CS600--------------------------------------------------------------------------------------------
+private double getFromUsbWeightCS600(){
 
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-        if (availableDrivers.isEmpty()) {
-            return -1;
-        }
-
-        // Open a connection to the first available driver.
-        UsbSerialDriver driver = availableDrivers.get(0);
-        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
-        if (connection == null) {
-            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            return -1;
-        }
-        try{
-            int usbSerialPort = 9600;
-            UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
-            port.open(connection);
-
-            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-
-
-            byte[] buf1 = new byte[2048];
-            int aa;
-            do{
-                aa=port.read(buf1,250);
-            }while (aa>0);
-            port.write("w\r\n".getBytes(), 250);//5050
-            byte[] buf = new byte[2048];
-            // Thread.sleep(1000);
-
-            int len = port.read(buf, 250);//3500
-            if (len < 3)
-                return -1;
-            Log.i("UDB, ",new String(buf));
-            String  weightStr = new String(buf).replace("\r","").replace("\n","").replace("g","");
-            String ss = weightStr.substring(0, 6);
-            double  weight  = new Double(ss);
-            return  weight;
-
-
-        }catch(Exception e){
-            return -1;
-        }
+    UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+    List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+    if (availableDrivers.isEmpty()) {
+        return -1;
     }
+
+    // Open a connection to the first available driver.
+    UsbSerialDriver driver = availableDrivers.get(0);
+    UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+    if (connection == null) {
+        // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+        return -1;
+    }
+    try{
+        int usbSerialPort = 9600;
+        port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+        port.open(connection);
+
+        port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+
+        byte[] buf1 = new byte[2048];
+        int aa;
+        do{
+            aa=port.read(buf1,250);
+        }while (aa>0);
+        port.write("w\r\n".getBytes(), 250);//5050
+        byte[] buf = new byte[2048];
+        // Thread.sleep(1000);
+
+        int len = port.read(buf, 250);//3500
+        if (len < 3)
+            return -1;
+        Log.i("UDB, ",new String(buf));
+        String  weightStr = new String(buf).replace("\r","").replace("\n","").replace("g","");
+        String ss = weightStr.substring(0, 6);
+        double  weight  = new Double(ss);
+        return  weight;
+
+
+    }catch(Exception e){
+        return -1;
+    }
+}
 
     public Bitmap generateBarcode(String barcodeData, int width, int height) {
         Map<EncodeHintType, Object> hints = new HashMap<>();
@@ -484,7 +550,17 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             return null;
         }
     }
-
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_HOME) {
+            // Handle the home button press here
+            Toast.makeText(this, "Home button pressed", Toast.LENGTH_SHORT).show();
+            // Return true to indicate that you have handled the event
+            return true;
+        }
+        // For other key presses, call the super method
+        return super.onKeyDown(keyCode, event);
+    }
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
@@ -1115,18 +1191,28 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     @Override
     public void beforeTextChanged(final CharSequence s, int start,
                                   int count, int after) {
-        input_barcode.clearFocus();
+        //start for android with scanner rachel
+        input_barcode.removeTextChangedListener(this);
+        this.s = s.toString();
+        handler.postDelayed(beforeText, 350);
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(getWindow().getCurrentFocus().getWindowToken(), 0);
-        hideSoftKeyboard(getWindow().getCurrentFocus());
-            input_barcode.removeTextChangedListener(this);
-        this.s = s.toString();
-        if (DOMAIN == "dangotandroid" || DOMAIN == "dangotandroid1") {
-            handler.postDelayed(beforeText, 1000);
-        }
-        else {
-            handler.postDelayed(beforeText, 350);//350}
-        }
+        //end for android with scanner
+
+        //start for dangot and liv, not working in android with scanner rachel
+//        input_barcode.clearFocus();
+//        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+//        imm.hideSoftInputFromWindow(getWindow().getCurrentFocus().getWindowToken(), 0);
+//        hideSoftKeyboard(getWindow().getCurrentFocus());
+//            input_barcode.removeTextChangedListener(this);
+//        this.s = s.toString();
+//        if (DOMAIN == "dangotandroid" || DOMAIN == "dangotandroid1") {
+//            handler.postDelayed(beforeText, 1000);
+//        }
+//        else {
+//            handler.postDelayed(beforeText, 350);//350}
+//        }
+        //end for dangot and liv, not working in android with scanner
     }
 
     @Override
@@ -1144,8 +1230,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }catch(Exception e){}
     */
     }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         Utils.hideSystemUI(getWindow());
         super.onCreate(savedInstanceState);
@@ -1185,6 +1275,22 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             setContentView(R.layout.activity_main);
         }
 
+          com.urovo.sdk.api.setForceLockScreen(true);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            startLockTask();
+//        }
+
+//        devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+//        adminComponent = new ComponentName(this, getClass());
+//        if (devicePolicyManager.isDeviceOwnerApp(getPackageName())) {
+//            String[] packages = {getPackageName()};
+//            devicePolicyManager.setLockTaskPackages(adminComponent, packages);
+//            startLockTask();
+//        } else {
+//
+//            Toast.makeText(this, "App is not set as device owner", Toast.LENGTH_SHORT).show();
+//        }
+
         input_barcode = findViewById(R.id.input_barcode);
         input_barcode.addTextChangedListener(this);
 
@@ -1200,18 +1306,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
-
-        btnFunctions = findViewById(R.id.btnFunctions);
-        btnPrint = findViewById(R.id.btnTestPrint);
-        btnDummyInvoice = findViewById(R.id.btnDummyInvoice);
-        etBarcode = findViewById(R.id.etBarcode);
+//noa
+       btnFunctions = findViewById(R.id.btnFunctions);
+       btnPrint = findViewById(R.id.btnTestPrint);
+       btnDummyInvoice = findViewById(R.id.btnDummyInvoice);
+       etBarcode = findViewById(R.id.etBarcode);
 //        buildBarcodeReader();
 
         btnFunctions.setOnClickListener(this);
         btnPrint.setOnClickListener(this);
         btnDummyInvoice.setOnClickListener(this);
         findViewById(R.id.btnDummyPayment).setOnClickListener(this);
-
+//noa
 
         connectImin();
 
@@ -1232,8 +1338,34 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         initPrinter();
         registerPrinter(this);
 
+        Intent intent = getIntent();
+        if (intent != null && intent.hasExtra("zicuy")) {
+            String zicuynum = intent.getStringExtra("num_zicuy");
+
+            // Assuming you determine the URL based on the received "zicuy" value
+            String url = getUrlBasedOnZicuy(zicuynum);
+
+            // Now load this URL in a WebView or handle it as needed
+            loadUrl(url);
+        }
+
+    }
 
 
+
+    private String getUrlBasedOnZicuy(String zicuy_num) {
+        // Implement logic to determine the URL based on the zicuy value
+        return "https://liv.yedatop.com/modules/stock/cashbox_fe/index.php?zicuy=1&num_zicuy=" + zicuy_num;  // Example URL
+    }
+    private void loadUrl(String url) {
+       // WebView webView = findViewById(R.id.webview);
+        webView.loadUrl(url);
+       // webView.getSettings().setJavaScriptEnabled(true);
+
+    }
+    private String constructUrlBasedOnZicuy(String zicuy) {
+        // This method is just a placeholder - customize as needed!
+        return "https://liv.yedatop.com/modules/stock/cashbox_fe/index.php";
     }
 
     private final Runnable disableKeyboard = new Runnable() {
@@ -1243,7 +1375,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     };
     public void disableKeyboard(){
-        this.webView.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
+        // this.webView = new WebView(this);
+        this.webView.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         this.webView.setFocusable(false);
         this.webView.setFocusableInTouchMode(false);
         this.hideSoftKeyboard(null);
@@ -1255,9 +1388,22 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     };
     public void enableKeyboard(){
-        this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
-        this.webView.setFocusable(true);
-        this.webView.setFocusableInTouchMode(true);
+        if (this.webView != null) {
+            this.webView.getSettings().setSaveFormData(false);
+            this.webView.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+            this.webView.setFocusable(true);
+            this.webView.setFocusableInTouchMode(true);
+            this.webView.requestFocus();
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.showSoftInput(this.webView, InputMethodManager.SHOW_IMPLICIT);
+            }
+        }
+//
+//        this.webView.getSettings().setSaveFormData(false);
+//        this.webView.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+//        this.webView.setFocusable(true);
+//        this.webView.setFocusableInTouchMode(true);
        // inputMethodManager.showSoftInputFromInputMethod(MainActivity.this.getCurrentFocus().getWindowToken(), 0);
       //this.inputMethodManager.showSoftInputFromInputMethod(MainActivity.this.getCurrentFocus().getWindowToken(), SHOW_FORCED);
 
@@ -1300,6 +1446,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
         return true;
     }
+
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
@@ -1635,6 +1782,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
         else {
             webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe?dangot=1");
+//             webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe?dangot=1&runner=1");//for runner
         }
         //webView.loadUrl("https://dangot.yedatop.com/modules/stock/cashbox_fe?dangot=1");
 //        webView.postUrl("https://office1.yedatop.com/modules/stock/rep_tazmech_print.php?&simple=1&sDate=01/02/2021&eDate=18/02/2021",("zedmode=1&journum=104").getBytes());
@@ -1741,7 +1889,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         barcode_scanner.setVisibility(View.GONE);
         input_barcode.setText(result.getText());
     }
-    public class MyJsInterface {
+    public class MyJsInterface implements DataListener {
         private Context context;
 
         public MyJsInterface(Context context) {
@@ -1760,9 +1908,19 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
             handler.postDelayed(disableKeyboard,10);
         }
+//        @JavascriptInterface
+//        public void longPressDiv() {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//                stopLockTask(); // Stop lock task without user confirmation
+//            }
+////            MainActivity.this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
+////            MainActivity.this.webView.setFocusable(true);
+////            MainActivity.this.webView.setFocusableInTouchMode(true);
+//        }
+
         @JavascriptInterface
         public void enableKeyboard() {
-            handler.postDelayed(enableKeyboard,10);
+            handler.postDelayed(enableKeyboard,5);
 //            MainActivity.this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
 //            MainActivity.this.webView.setFocusable(true);
 //            MainActivity.this.webView.setFocusableInTouchMode(true);
@@ -1886,7 +2044,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         @JavascriptInterface
         public double  getWeightNewtech(){
             if (getPlatform() ==  PLATFORMS.iPOS || getPlatform() ==  PLATFORMS.SUNMI)
-                return  MainActivity.this.getFromUsbWeightNewtech();
+                return  MainActivity.this.getFromUsbWeightBip30();
             else if (getPlatform() == PLATFORMS.IMIN){
                 return MainActivity.this.getFromIminWeight();
             }
@@ -1896,46 +2054,515 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         @JavascriptInterface
         public double  getWeight(){
             if (getPlatform() ==  PLATFORMS.iPOS || getPlatform() ==  PLATFORMS.SUNMI)
-                return  MainActivity.this.getFromUsbWeightCS600();
+                //return  MainActivity.this.getFromUsbWeightCS600();
+                return  MainActivity.this.getFromUsbWeightBip30();
             else if (getPlatform() == PLATFORMS.IMIN){
                 return MainActivity.this.getFromIminWeight();
             }
             return 0;
         }
+
         @JavascriptInterface
-        public void print_invoice_bon(String s, final String net) throws JSONException {
-            POSInterfaceAPI interface_net = new POSNetAPI();
-            //s="123456";
-            POSSDK pos_sdk = new POSSDK(interface_net);
-            int error_code = 0;
-            String[] a_arr;
-            int POSPORT = 9100;
-            //int STATEPORT = 4000;
-            error_code = interface_net.OpenDevice(net, POSPORT);
-            if(error_code == 1001){
+        public void unitPrice(String unitPrice){
+            UsbManager manager = (UsbManager) getSystemService
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    (Context.USB_SERVICE);
+            List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+            if (availableDrivers.isEmpty()) {
+                //return -1
             }
-            else {
-                running = 0;
-                byte[] send_buf = new byte[0];
-                s = s.replace("[", "");
-                s = s.replace("]", "");
-                s = s.replace("\"", "");
-                a_arr=s.split("[,]");
 
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                String jsonString = gson.toJson(a_arr);
-                jsonString = jsonString.replace("[", "");
-                jsonString = jsonString.replace("]", "");
-                jsonString = jsonString.replace("\"", "");
-                jsonString = jsonString.replace(",", "");
+            // Open a connection to the first available driver.
+            UsbSerialDriver driver = availableDrivers.get(0);
+            UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+            if (connection == null) {
+                // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+               // return -1;
+            }
+            try {
+                String UP = "P" + unitPrice + "\r\n";
+                int usbSerialPort = 9600;
+                port = driver.getPorts().get(0);
+                port.open(connection);
+                port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+                port.write(UP.getBytes(), 250);//5050
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
 
-                Bitmap c_image = pos_sdk.imageCreateRasterBitmap(jsonString,23,1);
-                error_code = pos_sdk.imageStandardModePrint (c_image, 33, 10, 640);
-                error_code = pos_sdk.systemCutPaper(CutPartAfterFeed, 80);
-                interface_net = null;
             }
         }
+
+        @JavascriptInterface
+        public void writelog(String journal, String text){
+            // Check if external storage is available
+            if (isExternalStorageWritable()) {
+                File directory = new File(Environment.getExternalStorageDirectory(), "Logs");
+                if (!directory.exists()) {
+                    directory.mkdirs();
+                }
+                File logFile = new File(directory, journal + ".txt");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                String currentTime = sdf.format(new Date());
+                try {
+                    if (!logFile.exists()) {
+                        logFile.createNewFile();
+                    }
+                    FileWriter writer = new FileWriter(logFile, true);
+                    writer.write(currentTime + " : " + text + "\n");
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private boolean isExternalStorageWritable() {
+            String state = Environment.getExternalStorageState();
+            return Environment.MEDIA_MOUNTED.equals(state);
+        }
+
+        private MqttClient mqttClient;
+       // private TextField textFieldServerAddress, textFieldServerPort, textFieldUserName, textFieldPassword;
+
+        private boolean subscribeTopic(String topic, int qos) {
+            try {
+                mqttClient.subscribe(topic, qos);
+                return true;
+            } catch (Throwable tr) {
+                tr.printStackTrace();
+            }
+            return false;
+        }
+//        private String generateTicketID(int i, int copies) {
+//            if (checkBoxManualSetTicketID.isSelected())
+//                return textFieldManualSetTicketID.getText().trim();
+//            else
+//                return (i + 1) + "/" + copies + " " + mqttClientID + " " + Utils.GetTimestamp();
+//        }
+
+        private boolean isMqttClientConnected() {
+            try {
+                if (mqttClient != null) return mqttClient.isConnected();
+            } catch (Throwable tr) {
+                tr.printStackTrace();
+            }
+            return false;
+        }
+
+        private MqttCallback mqttCallback = new MqttCallback() {
+            @Override
+            public void disconnected(MqttDisconnectResponse disconnectResponse) {
+                String msgstr = "disconnected " + disconnectResponse.toString();
+                System.out.println(msgstr);
+            }
+
+            @Override
+            public void mqttErrorOccurred(MqttException exception) {
+                String msgstr = "mqttErrorOccurred " + exception.toString();
+                System.out.println("from CALLBACK: " + msgstr);
+            }
+
+            @Override
+            public void messageArrived(String topic, MqttMessage message) throws Exception {
+                //The original data is stored in the file, the amount of data is too large
+                String msgstr = topic + "\n" + message.toString() + "\n";
+                System.out.println("Message published");
+              //  handleRecvMessage(message.toString());
+            }
+
+            @Override
+            public void deliveryComplete(IMqttToken token) {
+                String msgstr = "deliveryComplete " + token.toString();
+                System.out.println(msgstr);
+            }
+
+            @Override
+            public void connectComplete(boolean reconnect, String serverURI) {
+                String msgstr = "connectComplete " + serverURI;
+                System.out.println(msgstr);
+            }
+
+            @Override
+            public void authPacketArrived(int reasonCode, MqttProperties properties) {
+                String msgstr = "authPacketArrived " + properties;
+                System.out.println(msgstr);
+            }
+        };
+        private String generateTicketID(int i, int copies) {
+
+                return (i + 1) + "/" + copies + " " + "PrnCC18BF3BC51F" + " " ;
+        }
+        private boolean publishDataAndUpdateUI(String topic, byte[] data, int qos, String TicketID) {
+            if ((topic == null) || (topic.isEmpty())) {
+                return false;
+            }
+            System.out.println("Publish topic " + topic + " qos " + qos + " ticket " + TicketID);
+            //System.out.println(Utils.GetHexString(data));
+
+//            if (publishTopic(topic, data, qos)) {
+//                TicketInfoRow ticketInfoRow = getTicketInfoRow(TicketID);
+//                ticketInfoRow.setAppSended(Utils.GetTimestamp());
+//                return true;
+//            }
+            return true;
+        }
+
+
+        public Bitmap drawTextToBitmap(String s) {
+            // Create a mutable bitmap
+            Bitmap bitmap = Bitmap.createBitmap(10, 20, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            // Initialize a new Paint instance to draw the text
+            Paint paint = new Paint();
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.BLACK); // Text color
+            paint.setTextSize(2); // Text size
+            paint.setTypeface(Typeface.DEFAULT_BOLD);
+            // Optional: Set background color
+            canvas.drawColor(Color.WHITE);
+            // Calculate the positions to make the text center aligned
+            String text = "nkdvdbv dkjvndsjkvnc sdcdsijcsd ";
+            float textWidth = paint.measureText(text);
+            float x = (bitmap.getWidth() - textWidth) / 2;
+            float y = (bitmap.getHeight() - paint.ascent() - paint.descent()) / 2;
+            // Draw the text
+            canvas.drawText(text, x, y, paint);
+            return bitmap;
+        }
+
+        public byte[] bitmapToByteArray(Bitmap bitmap) {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream); // Compress to PNG format at 100% quality
+            byte[] byteArray = stream.toByteArray();
+            return byteArray;
+        }
+        public byte[] bitmapToMonochromeBytes(Bitmap bitmap) {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x += 8) {
+                    int value = 0;
+                    for (int bit = 0; bit < 8; bit++) {
+                        if (x + bit < width) {
+                            int pixel = bitmap.getPixel(x + bit, y);
+                            int luminance = (int) (0.299 * Color.red(pixel) + 0.587 * Color.green(pixel) + 0.114 * Color.blue(pixel));
+                            if (luminance < 128) {
+                                value |= (1 << (7 - bit));
+                            }
+                        }
+                    }
+                    byteArrayOutputStream.write(value);
+                }
+            }
+            return byteArrayOutputStream.toByteArray();
+        }
+        public  Bitmap convertToMonochrome(Bitmap src) {
+            Bitmap bmpMonochrome = Bitmap.createBitmap(src.getWidth(), src.getHeight(), Bitmap.Config.ALPHA_8);
+            Canvas canvas = new Canvas(bmpMonochrome);
+            ColorMatrix ma = new ColorMatrix();
+            ma.setSaturation(0);
+            Paint paint = new Paint();
+            paint.setColorFilter(new ColorMatrixColorFilter(ma));
+            canvas.drawBitmap(src, 0, 0, paint);
+            return bmpMonochrome;
+        }
+        public byte[] rasterizeBitmap(Bitmap bitmap) {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x += 8) {
+                    int byteValue = 0;
+                    for (int bit = 0; bit < 8; bit++) {
+                        if (x + bit < width) {
+                            int pixel = bitmap.getPixel(x + bit, y);
+                            if (Color.red(pixel) < 128) {  // Assuming black text on a white background
+                                byteValue |= (1 << (7 - bit));
+                            }
+                        }
+                    }
+                    byteArrayOutputStream.write(byteValue);
+                }
+            }
+            return byteArrayOutputStream.toByteArray();
+        }
+        public byte[] bitmapToBytes(Bitmap bitmap) {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            for (int y = 0; y < height; y++) {
+                int byteValue = 0;
+                for (int x = 0; x < width; x++) {
+                    if (x % 8 == 0 && x != 0) {
+                        outputStream.write(byteValue);
+                        byteValue = 0;
+                    }
+                    int color = bitmap.getPixel(x, y);
+                    int luminance = (Color.red(color) + Color.green(color) + Color.blue(color)) / 3;
+                    if (luminance < 128) {
+                        byteValue |= (1 << (7 - (x % 8)));  // Set bit to 1
+                    }
+                }
+                outputStream.write(byteValue); // write last byte
+            }
+            return outputStream.toByteArray();
+        }
+        public void sendBitmapOverMQTT(byte[] imageData, String serverURI, String net) {
+            try {
+                MemoryPersistence persistence = new MemoryPersistence();
+                mqttClient = new MqttClient(serverURI, net,persistence);
+                MqttConnectionOptions options = new MqttConnectionOptions();
+                options.setCleanStart(true);
+                mqttClient.connect(options);
+
+                MqttMessage message = new MqttMessage(imageData);
+                message.setQos(1);  // At least once delivery
+                mqttClient.publish(net, message);
+
+                mqttClient.disconnect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
+        }
+        public byte[] convertBitmapToPrinterBytes(Bitmap bitmap) {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            // Each line requires a width divisible by 8 for byte alignment
+            int byteWidth = (width + 7) / 8;
+            byte[] rowBytes = new byte[byteWidth];
+
+            for (int y = 0; y < height; y++) {
+                int byteIndex = 0;
+                for (int x = 0; x < width; x++) {
+                    if ((x % 8) == 0) {
+                        rowBytes[byteIndex] = 0;  // Initialize byte
+                    }
+
+                    int pixel = bitmap.getPixel(x, y);
+                    // Assuming white is 0xFF and black is 0x00, adjust threshold as necessary
+                    if ((pixel & 0xFF) < 128) {  // Check the blue component or calculate luminance
+                        rowBytes[byteIndex] |= (1 << (7 - (x % 8)));
+                    }
+
+                    if ((x % 8) == 7 || x == (width - 1)) {
+                        outputStream.write(rowBytes[byteIndex]);
+                        byteIndex++;
+                    }
+                }
+                // Line feed after each row
+                outputStream.write(0x0A);
+            }
+
+            return outputStream.toByteArray();
+        }
+        public void printDataUsingOPOS(byte[] data) {
+            POSPrinter printer = null;
+            try {
+                printer = new POSPrinter();
+                printer.open("POSPrinter");
+                printer.claim(1000);
+                printer.setDeviceEnabled(true);
+                printer.printNormal(POSPrinterConst.PTR_S_RECEIPT, new String(data));
+
+                printer.close();
+            } catch (JposException e) {
+                e.printStackTrace();
+            } finally {
+                if (printer != null) {
+                    try {
+                        printer.close();
+                    } catch (JposException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        private  POSPrinter printer;
+        public void initializePrinter() {
+            printer = new POSPrinter();
+            try {
+                // Replace "PrinterName" with the logical name of your printer
+                System.setProperty("jpos.config.propertiesFile", "C:\\Users\\User.DESKTOP-6PGG4DF.001\\Desktop\\Fix All APK\\yedaTop-main (4)\\yedaTop-main\\app\\src\\main\\res\\jpos.properties");
+                printer.open("Printer-3987");
+                printer.claim(1000);
+                printer.setDeviceEnabled(true);
+            } catch (JposException e) {
+                e.printStackTrace();
+                System.err.println("Error initializing printer: " + e.getMessage());
+            }
+        }
+        //מדפסת מרוחקת ענן עם PRN
+        @JavascriptInterface
+        public void print_invoice_bon(String s, final String net, String server, String userName, String password) throws JSONException {
+           try{
+              // initializePrinter();
+
+               String serverURI = server;
+               MemoryPersistence persistence = new MemoryPersistence();
+               mqttClient = new MqttClient(serverURI, net,persistence);
+              // MqttClient client = new MqttClient(serverURI, net);
+
+               MqttConnectionOptions connOpts = new MqttConnectionOptions();
+               connOpts.setCleanStart(true);
+               connOpts.setSessionExpiryInterval(0xffffffffl);
+               connOpts.setUserName(userName);
+               connOpts.setPassword(password.getBytes(StandardCharsets.UTF_8));
+               mqttClient.setCallback(mqttCallback);
+               mqttClient.connect(connOpts);
+
+               byte[] init = new byte[] {0x1B, 0x40};
+               String charsetName = "CP862";
+                s = s.replace("\"","");
+               s= s.replace("[","");
+               s= s.replace("]","");
+               String[] lines = s.split(",");
+               ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+               outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);
+
+               int x =0;
+               for (String line : lines) {
+                   byte[] text = line.getBytes(charsetName);
+                   int paddingLength = (40 - text.length) / 2; // Assuming 48 characters is the width of your printer
+                   outputStream.write(init);
+                   outputStream.write(text);
+                   if(x!=4) {
+                       for (int i = 0; i < paddingLength; i++) {
+                           outputStream.write(0x20); // Write spaces for padding
+                       }
+                   }if(x==4) {
+                       for (int i = 0; i < 20; i++) {
+                           outputStream.write(0x20); // Write spaces for padding
+                       }
+                   }
+                   outputStream.write(0x0A); // Line feed after each lin
+                   x++;
+               }
+               outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);
+               byte[] printData = outputStream.toByteArray();
+//            Bitmap bitmap = drawTextToBitmap(s);
+//              byte[] printData = bitmapToBytes(bitmap);
+//
+//               byte[] printerData = convertBitmapToPrinterBytes(bitmap);
+//               sendBitmapOverMQTT(printerData, serverURI, net);
+
+//               try (FileOutputStream out = new FileOutputStream("C:\\Users\\User.DESKTOP-6PGG4DF.001\\Downloads\\image.bmp")) {
+//                   bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // Change format as necessary
+//               } catch (IOException e) {
+//                   e.printStackTrace();
+//               }
+               ///Bitmap bitmap = drawTextToBitmap(s);
+                 // byte[] printData = rasterizeBitmap(convertToMonochrome(bitmap));
+               //  byte[] printData = bitmapToMonochromeBytes(bitmap);
+
+               String topic = net; // Replace with the topic the printer is subscribed to
+               // String message = "Hello, printer123456!";
+               mqttClient.publish(topic, printData, 1, true);
+
+               mqttClient.disconnect();
+        } catch (Throwable tr) {
+            tr.printStackTrace();
+        }
+
+        }
+        public void initializeOPOSDevice() {
+            try {
+                // Initialize the JavaPOS/OPOS service manager
+                //System.setProperty("jpos.config.regPopulatorClass", "jpos.util.JposProperties");
+
+                //JposProperties jposProperties = new JposProperties();
+               // JposProperties.loadJposProperties();
+                System.setProperty("jpos.config.populatorFile", "jpos.xml");
+                System.setProperty("jpos.config.regPopulatorClass", "jpos.config.simple.xml.SimpleXmlRegPopulator");
+                System.setProperty("jpos.config.propertiesFile", "/path/to/your/jpos.properties");
+//                jpos.util.JposProperties.setPropertyValue("jpos.config.populatorFile", "jpos.xml");
+//                jpos.util.JposProperties.setPropertyValue("jpos.config.regPopulatorClass", "jpos.config.simple.xml.SimpleXmlRegPopulator");
+                POSPrinter printer = new POSPrinter();
+                // Get a reference to the printer
+                //  printer = new POSPrinter();
+
+                // Open connection to the printer
+                printer.open("Printer-3987");
+
+                // Claim the printer for exclusive use
+                printer.claim(1000); // Timeout in milliseconds
+
+                // Enable the printer for communication
+                printer.setDeviceEnabled(true);
+            } catch (JposException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void sendToPrinter(String data) {
+            try {
+                // Print the data
+                POSPrinter printer = new POSPrinter();
+                printer.printNormal(POSPrinterConst.PTR_S_RECEIPT, data);
+            } catch (JposException e) {
+                e.printStackTrace();
+            }
+        }
+        public void check_connect_printer(final String net) throws Exception {
+           boolean conn = isMqttClientConnected();
+           if(conn==true){
+           }
+        }
+
+        //מדפסת מרוחקת ללא ענן, עם כבל ו IP
+          //  @JavascriptInterface
+//        public void print_invoice_bonsssss_(String s, final String net) throws JSONException {
+//
+//            POSInterfaceAPI interface_net = new POSNetAPI();
+//            //s="123456";
+//            POSSDK pos_sdk = new POSSDK(interface_net);
+//            int error_code = 0;
+//            String[] a_arr;
+//            int POSPORT = 9100;
+//            //int STATEPORT = 4000;
+//            error_code = interface_net.OpenDevice(net, POSPORT);
+//            if(error_code == 1001){
+//
+//            }
+//            else {
+//                running = 0;
+//                byte[] send_buf = new byte[0];
+//                s = s.replace("[", "");
+//                s = s.replace("]", "");
+//                s = s.replace("\"", "");
+//                a_arr=s.split("[,]");
+//
+//                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//                String jsonString = gson.toJson(a_arr);
+//                jsonString = jsonString.replace("[", "");
+//                jsonString = jsonString.replace("]", "");
+//                jsonString = jsonString.replace("\"", "");
+//                jsonString = jsonString.replace(",", "");
+//
+//                Bitmap c_image = pos_sdk.imageCreateRasterBitmap(jsonString,23,1);
+//                error_code = pos_sdk.imageStandardModePrint (c_image, 33, 10, 640);
+//                error_code = pos_sdk.systemCutPaper(CutPartAfterFeed, 80);
+//                interface_net = null;
+//            }
+//        }
         public Bitmap barcodeBitmap = null;
             /**
              *
@@ -1955,8 +2582,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if (addedReceiptWebView == null){
-                        loadWebView();
+                    if (addedReceiptWebView == null){                        loadWebView();
                     }
                     int font_size = 27;//30;
 
@@ -2441,6 +3067,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
             }
 //
+        }
+
+        @Override
+        public void dataOccurred(DataEvent dataEvent) {
+
         }
 
         class MyResponse {
