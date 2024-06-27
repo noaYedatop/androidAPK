@@ -169,7 +169,7 @@ import woyou.aidlservice.jiuiv5.IWoyouService;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-
+//CHECK 22222
 public class MainActivity extends BaseActivity implements View.OnClickListener , TextWatcher , ZXingScannerView.ResultHandler {
     BaseApp baseApp;
     public static final String TAG = "JS LOG";

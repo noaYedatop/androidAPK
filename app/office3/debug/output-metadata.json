@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "artifactType": {
+    "type": "APK",
+    "kind": "Directory"
+  },
+  "applicationId": "com.yedatop.maytal",
+  "variantName": "office3Debug",
+  "elements": [
+    {
+      "type": "SINGLE",
+      "filters": [],
+      "versionCode": 58,
+      "versionName": "v3.0.6",
+      "outputFile": "app-office3-debug.apk"
+    }
+  ]
+}
