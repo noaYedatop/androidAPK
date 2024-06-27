@@ -1632,7 +1632,7 @@ private double getFromUsbWeightCS600(){
 //noa
 
         connectImin();
-
+//test push and pull - git
 
         initWebView();
         if (BuildConfig.DOMAIN != "liv"  && BuildConfig.DOMAIN != "dangot1" && BuildConfig.DOMAIN != "dangot" && BuildConfig.DOMAIN != "dangotandroid" && BuildConfig.DOMAIN != "dangotandroid1") {//DANGOT
