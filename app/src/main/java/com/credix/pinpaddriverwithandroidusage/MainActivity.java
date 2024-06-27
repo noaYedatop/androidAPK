@@ -1631,7 +1631,7 @@ private double getFromUsbWeightCS600(){
         findViewById(R.id.btnDummyPayment).setOnClickListener(this);
 //noa
 
-        connectImin();
+      //  connectImin();
 
 
         initWebView();
