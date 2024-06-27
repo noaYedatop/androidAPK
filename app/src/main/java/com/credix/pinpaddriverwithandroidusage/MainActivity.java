@@ -3,6 +3,7 @@ package com.credix.pinpaddriverwithandroidusage;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -137,10 +138,12 @@ import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidParameterException;
+import java.sql.Array;
 import java.sql.Driver;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -148,6 +151,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -392,8 +397,228 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     }
 
+    private double getFromUsbWeightBip301() {
+        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+        if (availableDrivers.isEmpty()) {
+            Log.i("USB Connection", "No drivers available");
+            return -1;
+        }
+
+        // Open a connection to the first available driver.
+        UsbSerialDriver driver = availableDrivers.get(0);
+        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+        if (connection == null) {
+            Log.i("USB Connection", "Connection failed");
+            // Add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+            return -1;
+        }
+
+        try {
+            int usbSerialPort = 9600;
+            port.open(connection);
+            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+            port.write("w\r\n".getBytes(StandardCharsets.UTF_8), 145);
+
+            byte[] buf = new byte[2048];
+            byte[] tempBuf = new byte[256]; // Temporary buffer to read chunks
+            int totalLen = 0;
+            long startTime = System.currentTimeMillis();
+            long timeout = 2000; // Overall timeout of 2 seconds
+
+            while ((System.currentTimeMillis() - startTime) < timeout && totalLen < buf.length) {
+                int len = port.read(tempBuf, 1000); // Read into the temporary buffer
+                if (len > 0) {
+                    // Copy the data from tempBuf to buf
+                    System.arraycopy(tempBuf, 0, buf, totalLen, len);
+                    totalLen += len;
+                    Log.i("Partial Read", "Read " + len + " bytes: " + Arrays.toString(Arrays.copyOfRange(tempBuf, 0, len)));
+                    if (isDataComplete(buf, totalLen)) {
+                        break;
+                    }
+                }
+                Thread.sleep(100); // Small delay to give time for more data to arrive
+            }
+
+            if (totalLen < 3) {
+                String str = new String(buf, 0, totalLen, StandardCharsets.UTF_8);
+                Log.i("USB Data", "Received insufficient data: " + str);
+                return -1;
+            }
+
+            // Log raw byte data
+            Log.i("Raw Data", Arrays.toString(Arrays.copyOf(buf, totalLen)));
+
+            // Log byte data as hexadecimal
+            Log.i("Hex Data", bytesToHex(buf, totalLen));
+
+            String receivedData = new String(buf, 0, totalLen, StandardCharsets.UTF_8);
+            Log.i("USB Data", "Received data: " + receivedData);
+
+            // Trim and clean the received data
+            String weightStr = receivedData.replace("\r", "").replace("\n", "").replace("g", "").trim();
+            double weight = Double.parseDouble(weightStr);
+            return weight;
+
+        } catch (Exception e) {
+            Log.e("USB Exception", "Error reading weight", e);
+            return -1;
+        } finally {
+            try {
+                port.close();
+            } catch (Exception e) {
+                Log.e("USB Exception", "Error closing port", e);
+            }
+        }
+    }
+
+    private String bytesToHex(byte[] bytes, int length) {
+        char[] hexArray = "0123456789ABCDEF".toCharArray();
+        char[] hexChars = new char[length * 2];
+        for (int j = 0; j < length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+
+    // Helper method to determine if the data is complete
+    private boolean isDataComplete(byte[] buf, int length) {
+        // Implement logic to check if the received data is complete
+        // This might depend on the specific protocol or format of the device's response
+        // For example, you might look for a specific termination character or pattern
+        // Placeholder logic
+        return new String(buf, 0, length, StandardCharsets.UTF_8).contains("\n");
+    }
+
     //BIP 30--------------------------------------------------------------------------------------------
-    private double getFromUsbWeightBip30(){
+    private double getFromUsbWeightBip30() {
+        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+        if (availableDrivers.isEmpty()) {
+            Log.e("USB Error", "No USB drivers available");
+            return -1;
+        }
+
+        // Open a connection to the first available driver.
+        UsbSerialDriver driver = availableDrivers.get(0);
+        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+        if (connection == null) {
+            Log.e("USB Error", "Failed to open USB connection. Requesting permission.");
+//            PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+//            manager.requestPermission(driver.getDevice(), permissionIntent);
+            return -199;
+        }
+
+        UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+        try {
+            int baudRate = 9600;
+            port.open(connection);
+            port.setParameters(baudRate, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+            // Manually clear any previous data in the buffer
+            clearBuffer(port);
+
+            // Send the command to request weight measurement
+            int writeTimeout = 1000; // Timeout for writing command
+            port.write("w\r\n".getBytes(StandardCharsets.UTF_8), writeTimeout);
+            Log.i("USB Command", "Sent: w");
+
+            // Shorter wait for the device to process the command
+            Thread.sleep(300); // Initial delay
+
+            byte[] buffer = new byte[64];
+            int totalLen = 0;
+            StringBuilder responseBuilder = new StringBuilder();
+
+            for (int attempt = 0; attempt < 3; attempt++) { // Try reading multiple times with fewer attempts
+                int len = port.read(buffer, 1500); // Shorter timeout for reading response
+                if (len > 0) {
+                    totalLen += len;
+                    responseBuilder.append(new String(buffer, 0, len, StandardCharsets.UTF_8));
+                    Log.i("USB Data", "Read attempt " + attempt + ": " + responseBuilder.toString());
+                    if (responseBuilder.toString().contains("\n")) { // Assuming a newline terminates the response
+                        break;
+                    }
+                }
+                Thread.sleep(100); // Short delay between reads
+            }
+
+            if (totalLen < 1) {
+                Log.e("USB Error", "Received insufficient data");
+                return -1;
+            }
+
+            String response = responseBuilder.toString();
+            Log.i("USB Data", "Final Response: " + response);
+
+            // Check if response contains valid data
+            if (response == null || response.trim().isEmpty()) {
+                Log.e("USB Data", "Received null or empty response");
+                return -1;
+            }
+
+            // Clean and parse the response string
+            String weightStr = response.replace("\r", "").replace("\n", "").replace("g", "").trim();
+            Log.i("Parsed Weight String", "Weight String: " + weightStr);
+
+            if (weightStr.isEmpty()) {
+                Log.e("Weight Error", "Weight string is empty after parsing");
+                return -1;
+            }
+
+            try {
+                double weight = parseWeight(weightStr);
+                if (weight == 0.0) {
+                    Log.e("Weight Error", "Weight is zero, possibly incorrect reading");
+                    return -1;
+                }
+                return weight;
+            } catch (NumberFormatException e) {
+                Log.e("Parse Error", "Failed to parse weight: " + weightStr, e);
+                return -1;
+            }
+
+        } catch (Exception e) {
+            Log.e("USB Exception", "Error reading weight", e);
+            return -1;
+        } finally {
+            try {
+                if (port != null) {
+                    port.close();
+                }
+            } catch (Exception e) {
+                Log.e("USB Exception", "Error closing port", e);
+            }
+        }
+    }
+
+    // Helper method to clear the buffer manually
+    private void clearBuffer(UsbSerialPort port) {
+        try {
+            byte[] buffer = new byte[64];
+            while (port.read(buffer, 100) > 0) {
+                // Continue reading until buffer is empty
+            }
+        } catch (Exception e) {
+            Log.e("USB Error", "Error clearing buffer", e);
+        }
+    }
+
+    // Helper method to parse weight from different formats
+    private double parseWeight(String weightStr) throws NumberFormatException {
+        if (weightStr.startsWith(".")) {
+            weightStr = "0" + weightStr; // Add leading zero if the string starts with a dot
+        }
+        return Double.parseDouble(weightStr);
+    }
+
+
+
+    private double getFromUsbWeightBip30first(){
 
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
         List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
@@ -415,9 +640,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
             port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 
-            port.write("w\r\n".getBytes(), 250);
-            byte[] buf = new byte[2048];
-            int len = port.read(buf, 1250);
+            port.write("w\r\n".getBytes(), 1200);
+            byte[] buf = new byte[64];
+            Thread.sleep(500);
+            int len = port.read(buf, 2250);
             if (len < 3)
                 return -1;
             Log.i("UDB, ",new String(buf));
@@ -429,6 +655,92 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     }
 
+    private double getFromUsbWeightBip306(){
+
+        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+        if (availableDrivers.isEmpty()) {
+            Log.i("11111111111111", "111");
+            return -1;
+        }
+
+        // Open a connection to the first available driver.
+        UsbSerialDriver driver = availableDrivers.get(0);
+        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+        if (connection == null) {
+            Log.i("222222222222222", "2222");
+            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+            return -1;
+        }
+        try{
+            int usbSerialPort = 9600;
+            UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+            port.open(connection);
+
+            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+            BlockingQueue<Double> queue = new ArrayBlockingQueue<>(1);
+            port.write("w\r\n".getBytes(), 400);
+            readDataFromDevice(queue);
+            return queue.take(); // This will block until an element is available in the queue
+
+            /*port.write("w\r\n".getBytes(), 400);//250
+            byte[] buf = new byte[2048];
+            int len = port.read(buf, 1250);
+            //Thread.sleep(400);
+            if (len < 3) {
+                String str = new String(buf, StandardCharsets.UTF_8);
+
+                Log.i("33333333", len + "___" + str);
+                return -1;
+            }
+
+
+
+
+            String ss = new String(buf);
+            Log.i("000000: ", ss);
+            Log.i("UDB, ",ss.substring(0, 6));
+            String  weightStr = new String(buf).replace("\r","").replace("\n","").replace("g","");
+            Log.i("aendd: ", weightStr);
+            double  weight  = new Double(weightStr);
+            return  weight;*/
+        }catch(Exception e){
+            Log.i("4444444444", e.toString());
+            return -1;
+        }
+    }
+    private void readDataFromDevice(BlockingQueue<Double> queue) {
+        new Thread(() -> {
+            try {
+                byte[] buffer = new byte[16];
+                int numBytesRead = port.read(buffer, 5000);
+                while (numBytesRead > 0) {
+                    String data = new String(buffer, 0, numBytesRead, StandardCharsets.UTF_8);
+                    Log.i("USB Data", "Read " + numBytesRead + " bytes: " + data);
+
+                    // Parse the weight data
+                    String weightStr = data.replace("\r", "").replace("\n", "").replace("g", "").trim();
+                    try {
+                        double weight = Double.parseDouble(weightStr);
+                        queue.put(weight); // Put the weight in the queue
+                        return;
+                    } catch (NumberFormatException e) {
+                        Log.e("Parse Error", "Failed to parse weight: " + weightStr, e);
+                    }
+
+                    numBytesRead = port.read(buffer, 1000);
+                }
+                queue.put(-1.0); // Indicate an error
+            } catch (Exception e) {
+                try {
+                    queue.put(-1.0); // Indicate an error
+                } catch (InterruptedException interruptedException) {
+                    Log.e("USB Read Error", "Error putting error value in queue", interruptedException);
+                }
+                Log.e("USB Read Error", "Error reading from USB device", e);
+            }
+        }).start();
+    }
 //    //CS600--------------------------------------------------------------------------------------------
 //    private double getFromUsbWeightCS600(){
 //
@@ -1275,7 +1587,7 @@ private double getFromUsbWeightCS600(){
             setContentView(R.layout.activity_main);
         }
 
-          com.urovo.sdk.api.setForceLockScreen(true);
+          //com.urovo.sdk.api.setForceLockScreen(true);
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 //            startLockTask();
 //        }

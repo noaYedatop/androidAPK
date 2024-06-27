@@ -10,8 +10,8 @@
     {
       "type": "SINGLE",
       "filters": [],
-      "versionCode": 54,
-      "versionName": "v3.0.4",
+      "versionCode": 61,
+      "versionName": "v3.0.8",
       "outputFile": "app-liv1-release.apk"
     }
   ]

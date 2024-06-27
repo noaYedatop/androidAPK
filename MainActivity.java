@@ -1004,18 +1004,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         //disableKeyboard();
         hasAllPermissions();
         initPrinter();
-        registerPrinter(this);F
+        registerPrinter(this);
     }
 
     private void enableKeyboard(){
-        this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
+    //    this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
         this.webView.setFocusable(true);
         this.webView.setFocusableInTouchMode(true);
         this.inputMethodManager.showSoftInputFromInputMethod(MainActivity.this.getCurrentFocus().getWindowToken(), 0);
     }
 
     private void disableKeyboard(){
-        this.webView.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
+      //  this.webView.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
         this.webView.setFocusable(false);
         this.webView.setFocusableInTouchMode(false);
     }
@@ -1601,17 +1601,37 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                 barcode_scanner.setVisibility(View.VISIBLE);
                 barcode_scanner.setResultHandler(MainActivity.this); // Register ourselves as a handler for scan results.
                 barcode_scanner.startCamera();
-
-
                 // Programmatically initialize the scanner view
-
             }
         }
 
         @JavascriptInterface
         private void writelog(String journal, String text){
-            Log.i("AAAAAAAAAAAAAAAAAAAAAAAA ", text);
+            // Check if external storage is available
+            if (isExternalStorageWritable()) {
+                File directory = new File(Environment.getExternalStorageDirectory(), "Logs");
+                if (!directory.exists()) {
+                    directory.mkdirs();
+                }
+                File logFile = new File(directory, journal + ".txt");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                String currentTime = sdf.format(new Date());
+                try {
+                    if (!logFile.exists()) {
+                        logFile.createNewFile();
+                    }
+                    FileWriter writer = new FileWriter(logFile, true);
+                    writer.write(currentTime + " : " + text + "\n");
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
+        private boolean isExternalStorageWritable() {
+            String state = Environment.getExternalStorageState();
+            return Environment.MEDIA_MOUNTED.equals(state);
         }
 
         @JavascriptInterface
@@ -1673,9 +1693,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                             m.find() ;
                             downloadLogo(m.group().replace("src=\"","").replace("\"",""));
                         }
-
-
-
                         _htmlTemp = _htmlTemp+"<style type=\"text/css\">\timg{visibility: hidden;\theight: 0px;}\tbody{height: 0px;}</style>";
 
                       //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;","max-width:500px;width:450px;");

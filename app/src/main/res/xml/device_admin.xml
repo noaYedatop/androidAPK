@@ -1,4 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
-</PreferenceScreen>
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <!-- List the policies your app needs to enforce -->
+        <force-lock />
+        <wipe-data />
+        <reset-password />
+        <!-- Additional policies as needed -->
+    </uses-policies>
+</device-admin>

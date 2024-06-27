@@ -3,6 +3,7 @@ package com.credix.pinpaddriverwithandroidusage;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -25,6 +26,11 @@ import androidx.annotation.Nullable;
 
 import com.credix.pinpaddriverwithandroidusage.WebInterface.BackOfficeInterface;
 import com.google.firebase.analytics.FirebaseAnalytics;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class BackOfficeActivity extends BaseActivity {
     private WebView wv,addedReceiptWebView;
@@ -171,8 +177,19 @@ public class BackOfficeActivity extends BaseActivity {
                         BackOfficeActivity.this.finish();
                     }
                 });
+            }else if (url.endsWith("zicuy=1"))
+            {
+                Uri uri = Uri.parse(url);
 
+                // Retrieve the value of "num_zicuy"
+                String numZicuyValue = uri.getQueryParameter("num_zicuy");
+                Intent intent = new Intent(BackOfficeActivity.this, MainActivity.class);
+                intent.putExtra("zicuy", "1");
+                intent.putExtra("num_zicuy", numZicuyValue);
+                startActivity(intent);
+                finish();  // Load the specific URL you want to navigate to
             }else
+
             {
                 view.loadUrl(url);
             }

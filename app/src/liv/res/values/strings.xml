@@ -1,5 +1,8 @@
 <resources>
-    <string name="app_name">c</string>
+    <string name="app_name">liv</string>
+<!--    <string name="app_name">runner</string>-->
+
+
 
     <!--funtion list-->
     <string name="function_all">Comprehensive Test</string>

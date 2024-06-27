@@ -1,2 +1,9 @@
-package com.urovo.sdk;public class api {
+package com.urovo.sdk;
+
+public class api {
+
+    public static void setForceLockScreen(boolean lock){
+
+    }
+
 }
