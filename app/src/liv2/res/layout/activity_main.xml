@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:id="@+id/root_view"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <!-- The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc. -->
+
+    <!-- This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows. -->
+
+    <ImageView
+        android:id="@+id/img"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
+
+
+
+    <!--    <WebView-->
+    <!--        android:id="@+id/webReciept"-->
+    <!--        android:background="@color/FF3C00"-->
+    <!--        android:layout_width="350dp"-->
+    <!--        android:layout_height="match_parent"-->
+    <!--        android:visibility="invisible" >-->
+    <!--    </WebView>-->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:clickable="false"
+        />
+    <EditText
+        android:id="@+id/input_barcode"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:cursorVisible="false"
+        android:contentDescription="שדה קלט לברקוד"
+        >
+    </EditText>
+    <WebView
+        android:id="@+id/fullscreen_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottom"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        />
+    <LinearLayout
+        android:id="@+id/transaction_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0A172C"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true">
+        <RelativeLayout
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="#0E203D"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:layoutDirection="rtl"
+            android:textDirection="rtl">
+            <ImageView
+                android:id="@+id/menu_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginStart="8dp"
+                android:layout_centerVertical="true"
+                android:src="@drawable/menu_logo" />
+
+            <!-- לוגו -->
+            <ImageView
+                android:id="@+id/logobar"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_toEndOf="@id/menu_icon"
+                android:layout_marginStart="12dp"
+                android:layout_centerVertical="true"
+                android:src="@drawable/logo" />
+            <!-- תאריך -->
+            <TextView
+                android:id="@+id/tvDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/logobar"
+                android:layout_marginStart="12dp"
+                android:layout_centerVertical="true"
+                android:text="10.06.2024 14:20"
+                android:textColor="#B5D1FF"
+                android:textSize="12sp" />
+
+
+            <!-- מפריד -->
+            <View
+                android:id="@+id/separator"
+                android:layout_width="1dp"
+                android:layout_height="20dp"
+                android:layout_toEndOf="@id/tvDate"
+                android:layout_marginStart="12dp"
+                android:layout_centerVertical="true"
+                android:background="#B5D1FF" />
+
+
+            <!-- מספר מסוף -->
+            <TextView
+                android:id="@+id/tvMispar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/separator"
+                android:layout_marginStart="12dp"
+                android:layout_centerVertical="true"
+                android:text="מסוף: 0882577012"
+                android:textColor="#B5D1FF"
+                android:textSize="12sp" />
+
+
+            <!-- סגירת קופה -->
+
+            <TextView
+                android:id="@+id/tvClose"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_toEndOf="@id/tvMispar"
+                android:layout_marginStart="12dp"
+                android:text="סגירת קופה"
+                android:textColor="#F34B7D"
+                android:textStyle="bold"
+                android:layout_centerVertical="true"
+                android:textSize="12sp" />
+        </RelativeLayout>
+
+
+        <!--        <ImageView-->
+        <!--            android:id="@+id/transaction_icon"-->
+        <!--            android:layout_width="400dp"-->
+        <!--            android:layout_height="400dp"-->
+        <!--            android:src="@drawable/ashray"-->
+        <!--            android:visibility="gone"/>-->
+        <Button
+            android:id="@+id/temp_button"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:background="@android:color/transparent"
+            android:textColor="#FFFFFF"
+             />
+        <TextView
+            android:id="@+id/transaction_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="חיוב עסקה"
+            android:textColor="#B5D1FF"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:paddingBottom="12dp" />
+
+        <!-- שדה קלט עבור סכום החיוב -->
+        <EditText
+            android:id="@+id/transaction_amount_input"
+            android:layout_width="300dp"
+            android:layout_height="160dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:inputType="numberDecimal"
+            android:textSize="50sp"
+            android:background="@drawable/rounded_bg"
+            android:textColor="#FFFFFF"
+            android:padding="20dp"
+            android:radius="32dp"
+            android:layout_marginBottom="24dp" />
+
+        <FrameLayout
+            android:id="@+id/spinnerContainer"
+            android:layout_width="300dp"
+            android:layout_height="160dp"
+            android:layout_gravity="center"
+            android:background="@drawable/rounded_bg"
+            android:layout_marginBottom="24dp"
+            android:padding="20dp">
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/loadingSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                app:indicatorSize="40dp"
+                app:trackThickness="4dp"
+                />
+        </FrameLayout>
+        <!-- סכום -->
+
+        <TextView
+            android:id="@+id/transaction_message_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:textSize="10sp"
+            android:textColor="#B5D1FF"
+            android:textStyle="bold"
+            />
+
+
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+
+        <Button
+            android:id="@+id/transaction_button"
+            android:layout_width="320dp"
+            android:layout_height="wrap_content"
+            android:textSize="23sp"
+            android:gravity="center"
+            android:textColor="#FFFFFF"
+            android:text="בטל"
+            android:textStyle="bold"
+            android:background="#0E203D"
+            android:layout_gravity="center"
+            android:padding="12dp"
+            />
+
+
+    </LinearLayout>
+
+    <!--    <ImageView-->
+    <!--        android:id="@+id/transaction_icon"-->
+    <!--        android:layout_width="140dp"-->
+    <!--        android:layout_height="140dp"-->
+    <!--        android:src="@drawable/ic_logo"-->
+    <!--        android:layout_marginBottom="20dp"/>-->
+    <!--    <TextView-->
+    <!--        android:id="@+id/transaction_message_text"-->
+    <!--        android:layout_width="match_parent"-->
+    <!--        android:layout_height="match_parent"-->
+    <!--        android:textSize="23sp"-->
+    <!--        android:textColor="#FFFFFF"-->
+    <!--        android:padding="20dp"-->
+    <!--        android:gravity="center"-->
+    <!--        android:textStyle="bold"-->
+    <!--        android:elevation="10dp"-->
+    <!--        android:shadowColor="#80000000"-->
+    <!--        android:shadowDx="4"-->
+    <!--        android:shadowDy="4"-->
+    <!--        android:shadowRadius="8"-->
+    <!--        android:layout_centerHorizontal="true" />-->
+    <!--&lt;!&ndash;        android:drawableLeft="@drawable/ic_logo"&ndash;&gt;-->
+    <!--&lt;!&ndash;        android:drawablePadding="10dp"&ndash;&gt;-->
+    <!--        &lt;!&ndash; רווח בין האייקון לטקסט &ndash;&gt;-->
+
+    <LinearLayout
+        android:id="@+id/bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnFunctions"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="go to functions" />
+
+        <Button
+            android:id="@+id/btnTestPrint"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="test print" />
+
+        <Button
+            android:id="@+id/btnDummyInvoice"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Dummy invoice" />
+
+        <Button
+            android:id="@+id/btnDummyPayment"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="Dummy Pay" />
+
+        <EditText
+            android:id="@+id/etBarcode"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvOut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center"
+        android:padding="20dp"
+        android:textColor="@color/black"
+        android:visibility="gone"
+        />
+    <LinearLayout
+        android:id="@+id/printOutput"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:background="@color/white"
+        android:orientation="vertical"
+        android:visibility="gone" />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:id="@+id/reload">
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:src="@drawable/ic_logo"
+            android:id="@+id/logo"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="בעיות גישה, לחץ לטעינה מחדש."
+            android:layout_below="@id/logo"
+            android:visibility="gone"
+            android:layout_centerHorizontal="true"
+            android:id="@+id/reload_txt">
+
+        </TextView>
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:id="@+id/fullscreen_content_controls"
+            style="?metaButtonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:background="@color/black_overlay"
+            android:orientation="horizontal"
+            tools:ignore="UselessParent">
+
+        </LinearLayout>
+    </FrameLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:id="@+id/progress"
+        android:visibility="gone">
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            />
+    </RelativeLayout>
+
+    <FrameLayout
+        android:id="@+id/webReciept"
+        android:background="@android:color/transparent"
+        android:layout_width="350dp"
+        android:layout_height="match_parent"
+        android:visibility="invisible"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:id="@+id/display"
+        android:background="@android:color/transparent" />
+
+
+    <me.dm7.barcodescanner.zxing.ZXingScannerView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/barcode_scanner"
+        android:visibility="gone" />
+
+</RelativeLayout>

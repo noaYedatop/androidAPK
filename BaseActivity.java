@@ -64,7 +64,7 @@ import java.util.Map;
 
 public class BaseActivity extends AppCompatActivity {
 
-    public PrintMe sunmi;
+    //public PrintMe sunmi;
     public UsbManager mUsbManager;
     public UsbDevice mUsbDevice;
     private MyPresentation mPresentation;
@@ -131,7 +131,7 @@ public class BaseActivity extends AppCompatActivity {
 
         inputMethodManager = (InputMethodManager) BaseActivity.this.getSystemService(Activity.INPUT_METHOD_SERVICE);
 
-        sunmi = new PrintMe(this);
+        //sunmi = new PrintMe(this);
 
         mDevice = new DeviceManager();
         mPrinterManager = new PrinterManager();
@@ -380,14 +380,6 @@ public class BaseActivity extends AppCompatActivity {
 
                     CutPaper();
 
-//
-//                    handler.postDelayed(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            mIminPrintUtils.partialCut();
-//                        }
-//                    }, 500);
-
                     if (data.length() > 1) {
 
                         handler.postDelayed(printAnother, 600);
@@ -435,33 +427,33 @@ public class BaseActivity extends AppCompatActivity {
 
                     }
                 }
-                else if (getPlatform() == PLATFORMS.SUNMI) {
-                    if (logo != null){
-                        if (logo.getWidth() < 350)
-                            logo = Bitmap.createScaledBitmap(logo, 350, 150, false);
-
-                        sunmi.sendImageToPrinter(logo);
-                        sunmi.aidlUtil.print3Line();
-                    }
-
-                    sunmi.sendImageToPrinter(bitmap);
-
-                    if (barcode.length() > 1){
-                        sunmi.aidlUtil.printBarCode(barcode,8 /*code 128*/,80,2,0);
-                        sunmi.aidlUtil.print3Line();
-                    }
-                    sunmi.aidlUtil.print3Line();
-                    CutPaper();
-
-                    if (data.length() > 1) {
-
-                        handler.postDelayed(printAnother, 600);
-                    }else{
-
-                        clearPrinterResources();
-
-                    }
-                }
+//                else if (getPlatform() == PLATFORMS.SUNMI) {
+//                    if (logo != null){
+//                        if (logo.getWidth() < 350)
+//                            logo = Bitmap.createScaledBitmap(logo, 350, 150, false);
+//
+//                        sunmi.sendImageToPrinter(logo);
+//                        sunmi.aidlUtil.print3Line();
+//                    }
+//
+//                    sunmi.sendImageToPrinter(bitmap);
+//
+//                    if (barcode.length() > 1){
+//                        sunmi.aidlUtil.printBarCode(barcode,8 /*code 128*/,80,2,0);
+//                        sunmi.aidlUtil.print3Line();
+//                    }
+//                    sunmi.aidlUtil.print3Line();
+//                    CutPaper();
+//
+//                    if (data.length() > 1) {
+//
+//                        handler.postDelayed(printAnother, 600);
+//                    }else{
+//
+//                        clearPrinterResources();
+//
+//                    }
+//                }
                 else
                 {
 

@@ -1,0 +1,200 @@
+﻿05-27 23:12:17.301  1194  1194 D Layer   : Focus: Task=179#132 isHiddenByPolicy s.flags&layer_state_t::eLayerHidden=1
+05-27 23:12:17.301  1194  1194 D Layer   : Focus: isHiddenByPolicy parent Task=179#132 is hidden cause not visible
+05-27 23:12:17.301  1194  1194 D SurfaceFlinger: Focus inVisible Reason:isVisibleForInput(){hasInputInfo()?canReceiveInput():isVisible()}=0 has=1 can{!isHiddenByPolicy()&&(mBuffer==nullptr||getAlpha()>0.0f)}=0 Hidden=1 Buf=1 getA=1
+05-27 23:12:17.301  1194  1194 D SurfaceFlinger: Find Focus windowName=<null>, notVisible=1
+05-27 23:12:17.301  1194  1194 D Layer   : Focus: Task=1#52 isHiddenByPolicy s.flags&layer_state_t::eLayerHidden=1
+05-27 23:12:17.301  1194  1194 D Layer   : Focus: isHiddenByPolicy parent Task=1#52 is hidden cause not visible
+05-27 23:12:17.301  1194  1194 D SurfaceFlinger: Focus inVisible Reason:isVisibleForInput(){hasInputInfo()?canReceiveInput():isVisible()}=0 has=1 can{!isHiddenByPolicy()&&(mBuffer==nullptr||getAlpha()>0.0f)}=0 Hidden=1 Buf=1 getA=1
+05-27 23:12:17.301  1194  1194 D SurfaceFlinger: Find Focus windowName=<null>, notVisible=1
+05-27 23:12:17.301  1194  1194 D Layer   : Focus: com.android.systemui.wallpapers.ImageWallpaper_system$_2274#83 isHiddenByPolicy s.flags&layer_state_t::eLayerHidden=1
+05-27 23:12:17.301  1194  1194 D Layer   : Focus: isHiddenByPolicy parent com.android.systemui.wallpapers.ImageWallpaper_system$_2274#83 is hidden cause not visible
+05-27 23:12:17.301  1194  1194 D SurfaceFlinger: Focus inVisible Reason:isVisibleForInput(){hasInputInfo()?canReceiveInput():isVisible()}=0 has=1 can{!isHiddenByPolicy()&&(mBuffer==nullptr||getAlpha()>0.0f)}=0 Hidden=1 Buf=0 getA=1
+05-27 23:12:17.301  1703  5132 V WindowManager: Relayout Window{c76cba4 u0 com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService}: viewVisibility=8 req=67x97 ty=2226 d0
+05-27 23:12:17.302  1194  1415 D SurfaceFlinger: updateWinowInfo=1, setFocusedWindow timestamp=2884983757170, windowName=<null>
+05-27 23:12:17.302  1703  5132 E WindowManager: win=Window{c76cba4 u0 com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService} destroySurfaces: appStopped=true cleanupOnResume=false win.mWindowRemovalAllowed=false win.mRemoveOnExit=false win.mViewVisibility=8 caller=com.android.server.wm.WindowManagerService.tryStartExitingAnimation:2980 com.android.server.wm.WindowManagerService.relayoutWindow:2685 com.android.server.wm.Session.relayout:282 android.view.IWindowSession$Stub.onTransact:782 com.android.server.wm.Session.onTransact:204 android.os.Binder.execTransactInternal:1375 android.os.Binder.execTransact:1311 
+05-27 23:12:17.302  1703  2976 D InputDispatcher: Focus request (0): <null> but waiting because NO_WINDOW
+05-27 23:12:17.302  1703  2976 D InputDispatcher: Focus left window (0): 3f1c1ba com.yedatop.maytal/com.credix.pinpaddriverwithandroidusage.MainActivity
+05-27 23:12:17.303  1703  5132 I WindowManager: Destroying surface Surface(name=com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService$_2654)/@0x9f6ad1b called by com.android.server.wm.WindowStateAnimator.destroySurface:799 com.android.server.wm.WindowStateAnimator.destroySurfaceLocked:472 com.android.server.wm.WindowState.destroySurfaceUnchecked:4201 com.android.server.wm.WindowState.destroySurface:4175 com.android.server.wm.WindowManagerService.tryStartExitingAnimation:2980 com.android.server.wm.WindowManagerService.relayoutWindow:2685 com.android.server.wm.Session.relayout:282 android.view.IWindowSession$Stub.onTransact:782 
+05-27 23:12:17.304  2654  4638 I HoneySpace.HoneySpacePackageSourceImpl: getActiveItems : 43
+05-27 23:12:17.304  2654  4638 I HoneySpace.HistoryRepositoryImpl: Add History Item : 0id:-1 label:╫₧╫ש╫ר╫£ ╫ץ╫צ╫פ ╫º╫£ componnet:com.yedatop.maytal/com.credix.pinpaddriverwithandroidusage.MainActivity#UserHandle{0} badgeCount:0  drag:false iconState:NONE
+05-27 23:12:17.305  2654  4638 I HoneySpace.HistoryRepositoryImpl: result : 1
+05-27 23:12:17.317  1194  1194 I Layer   : id=5108 removeFromCurrentState com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService$_2654#5108 (112)
+05-27 23:12:17.319  2274  2511 I gralloc4: @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+05-27 23:12:17.321  1194  1194 D SurfaceFlinger: Display 0 HWC layers:
+05-27 23:12:17.321  1194  1194 D SurfaceFlinger:      DEVICE | 0xb400007305201d00 | 0102 | RGBA_8888    |    0.0    0.0  800.0 1340.0 |    0    0  800 1340 | com.yedatop.maytal/com.credix.pinpad[...]ndroidusage.MainActivity$_31938#5074
+05-27 23:12:17.321  1194  1194 D SurfaceFlinger: 
+05-27 23:12:17.328  1703  5132 D WindowManager: SyncGroup 1416:  Unfinished container: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217} mSyncState=2
+05-27 23:12:17.336  2274  2511 I gralloc4: @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+05-27 23:12:17.338  1703  2427 E ClipboardService: Denying clipboard access to com.yedatop.maytal, application is not in focus nor is it a system service for user 0
+05-27 23:12:17.338  1703  5138 D InputTransport: Input channel destroyed: '839d5be', fd=833
+05-27 23:12:17.338  1703  5138 W InputManager-JNI: Input channel object '839d5be com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity (client)' was disposed without first being removed with the input manager!
+05-27 23:12:17.338  1703  5138 D InputTransport: Input channel destroyed: '839d5be', fd=835
+05-27 23:12:17.339  1703  5138 V WindowManager: Remove Window{839d5be u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity EXITING}: mSurfaceController=Surface(name=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity$_30689)/@0x4a81eb8 mAnimatingExit=true mRemoveOnExit=false mHasSurface=true surfaceShowing=true animating=true app-animation=false mDisplayFrozen=false callers=com.android.server.wm.WindowManagerService.removeWindow:2148 com.android.server.wm.Session.remove:257 android.view.IWindowSession$Stub.onTransact:747 com.android.server.wm.Session.onTransact:204 android.os.Binder.execTransactInternal:1375 android.os.Binder.execTransact:1311 
+05-27 23:12:17.339 31938 31938 I ImeFocusController: onPostWindowFocus: skipped, hasWindowFocus=true mHasImeFocus=false
+05-27 23:12:17.340 31938 31938 I chromium: [INFO:CONSOLE:102] "Error: [$rootScope:inprog] http://errors.angularjs.org/1.3.15/$rootScope/inprog?p0=%24digest
+05-27 23:12:17.340 31938 31938 I chromium:     at https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:6:417
+05-27 23:12:17.340 31938 31938 I chromium:     at p (https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:118:370)
+05-27 23:12:17.340 31938 31938 I chromium:     at b.$apply (https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:126:224)
+05-27 23:12:17.340 31938 31938 I chromium:     at https://android.yedatop.com/modules/stock/cashbox_fe/js/client77.js?ver=2:32:19
+05-27 23:12:17.340 31938 31938 I chromium:     at https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:80:454
+05-27 23:12:17.340 31938 31938 I chromium:     at https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:112:113
+05-27 23:12:17.340 31938 31938 I chromium:     at n.$eval (https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:126:15)
+05-27 23:12:17.340 31938 31938 I chromium:     at n.$digest (https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:123:106)
+05-27 23:12:17.340 31938 31938 I chromium:     at n.$apply (https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:126:293)
+05-27 23:12:17.340 31938 31938 I chromium:     at l (https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js:81:240)", source: https://android.yedatop.com/modules/stock/cashbox_fe/js/angular.min.js (102)
+05-27 23:12:17.342  1703  5138 D WindowManager: SyncGroup 1416:  Unfinished container: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217} mSyncState=2
+05-27 23:12:17.345  1703  2788 D CoreBackPreview: Window{839d5be u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity EXITING}: Setting back callback null
+05-27 23:12:17.347  1703  1747 I ActivityManager: Changes in 10199 19 to 2, 0 to 63
+05-27 23:12:17.347  1703  5132 V WindowManager: Relayout hash=c76cba4, pid=2654, syncId=-1: mAttrs={(0,175)(67x97) gr=TOP RIGHT CENTER sim={adjust=nothing forwardNavigation} layoutInDisplayCutoutMode=shortEdges ty=2226 fmt=TRANSPARENT
+05-27 23:12:17.347  1703  5132 V WindowManager:   fl=81800508
+05-27 23:12:17.347  1703  5132 V WindowManager:   pfl=2000070
+05-27 23:12:17.347  1703  5132 V WindowManager:   bhv=SHOW_TRANSIENT_BARS_BY_SWIPE
+05-27 23:12:17.347  1703  5132 V WindowManager:   fitTypes=NAVIGATION_BARS CAPTION_BAR
+05-27 23:12:17.347  1703  5132 V WindowManager:  dimAmount=0.0 dimDuration=0 naviIconColor=0
+05-27 23:12:17.347  1703  5132 V WindowManager:   sfl=20000}
+05-27 23:12:17.347  1155 32233 I mtkpower_client: perf_lock_rel, hdl:7558, tid:32233
+05-27 23:12:17.348 30689 30689 D InputTransport: Input channel destroyed: '839d5be', fd=116
+05-27 23:12:17.348  1155 32233 I mtkpower_client: perf_lock_acq, hdl:0, dur:0, num:2, tid:32233
+05-27 23:12:17.348 31938 31938 I ViewRootImpl@4c16e0b[MainActivity]: handleWindowFocusChanged: 0 0 call from android.view.ViewRootImpl.-$$Nest$mhandleWindowFocusChanged:0
+05-27 23:12:17.349 31938 31938 I ImeFocusController: onPreWindowFocus: skipped, hasWindowFocus=false mHasImeFocus=false
+05-27 23:12:17.349  1165  1226 I libPowerHal: [perfLockRel] hdl:7558, idx:5
+05-27 23:12:17.349  1703  1747 D SGM:FgCheckThread: notePauseComponent(), received pkgName: com.yedatop.maytal, userId: 0
+05-27 23:12:17.349  1165  1226 I libPowerHal: [set_cpuidle] enable:1, fd:14, scn:0xb400007c93bc2420
+05-27 23:12:17.349  1165  1226 I libPowerHal: [PD] vendor.samsung. update cmd:1c3c100 param:1
+05-27 23:12:17.349  1703  5138 V WindowManager: Collecting in transition 1416: ActivityRecord{8ce4f74 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217 f}}, caller=com.android.server.wm.Transition.collect:759 com.android.server.wm.TransitionController.collect:935 com.android.server.wm.ActivityRecord.onRemovedFromDisplay:5211 com.android.server.wm.DisplayContent.removeAppToken:1893 com.android.server.wm.ActivityRecord.removeFromHistory:4846 
+05-27 23:12:17.349  1703  5138 D WindowManager: prepareSync <SYNC_STATE_WAITING_FOR_DRAW>, mPrepareSyncSeqId=0, win=Window{839d5be u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity EXITING}
+05-27 23:12:17.349  1155 32233 I mtkpower_client: ret_hdl:7562
+05-27 23:12:17.349  1155 32233 I mtkpower_client: perf_lock_rel, hdl:7560, tid:32233
+05-27 23:12:17.350  1165  1226 I libPowerHal: [perfLockAcq] idx:4 hdl:7562 hint:-1 pid:1155 duration:0 lock_user:vendor.samsung. => ret_hdl:7562
+05-27 23:12:17.350  1165  1226 I libPowerHal: [set_cpuidle] enable:0, fd:14, scn:0xb400007c93bc14c0
+05-27 23:12:17.350  1165  1226 I libPowerHal: [get_cpu_dma_latency_value] 0
+05-27 23:12:17.350  2654  2654 I ViewRootImpl@23b3aac[CocktailBarService]: Relayout returned: old=(1273,175,1340,272) new=(1273,175,1340,272) relayoutAsync=false req=(67,97)8 dur=68 res=0x2 s={false 0x0} ch=true seqId=0
+05-27 23:12:17.350  1165  1226 I libPowerHal: [PE] vendor.samsung. update cmd:1c3c100 param:0
+05-27 23:12:17.350 31938 31938 I ImeFocusController: onPostWindowFocus: skipped, hasWindowFocus=false mHasImeFocus=false
+05-27 23:12:17.350  1155 32233 I mtkpower_client: perf_lock_acq, hdl:0, dur:0, num:2, tid:32233
+05-27 23:12:17.350  2654  2654 I Edge.TrayStateController: putInputRect mDynamicInputRegion=82819107@LastEvent=t=1748376737350Rect(32, 0 - 67, 97),Rect=Rect(0, 0 - 0, 0)
+05-27 23:12:17.350  1155 32233 I mtkpower_client: ret_hdl:7563
+05-27 23:12:17.350  1155 32233 I mtkpower_client: perf_lock_rel, hdl:7561, tid:32233
+05-27 23:12:17.350  1194  1243 I SurfaceFlinger: id=5108 Removed com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService$_2654#5108 (112)
+05-27 23:12:17.350  2654  2654 I Edge.CocktailBarUiController: onCocktailBarStateChanged: flag=0x1 vis=2 bgType= showTimeout=-1 activate=true
+05-27 23:12:17.351  1165  1226 I libPowerHal: [perfLockRel] hdl:7560, idx:1
+05-27 23:12:17.351  1165  1226 I libPowerHal: [PD] vendor.samsung. update cmd:1000000 param:-1
+05-27 23:12:17.351  1165  1226 I libPowerHal: [perfLockAcq] idx:5 hdl:7563 hint:-1 pid:1155 duration:0 lock_user:vendor.samsung. => ret_hdl:7563
+05-27 23:12:17.352  1165  1226 I libPowerHal: [PE] vendor.samsung. update cmd:1000000 param:0
+05-27 23:12:17.352  1155 32233 I mtkpower_client: perf_lock_acq, hdl:0, dur:0, num:2, tid:32233
+05-27 23:12:17.352  1155 32233 I mtkpower_client: ret_hdl:7564
+05-27 23:12:17.352  1155 32233 I HYPER-HAL: [RequestManager.cpp]releaseLocked(): Released ID : 1483522
+05-27 23:12:17.353  1165  1226 I libPowerHal: [perfLockRel] hdl:7561, idx:3
+05-27 23:12:17.353 30689 30703 D OpenGLRenderer: CacheManager::trimMemory(20)
+05-27 23:12:17.353  1165  1226 I libPowerHal: [setClusterFreq] vendor.samsung.: sysfs_freq set cpu freq: 2000000 -1 -1 -1 
+05-27 23:12:17.354  1703  5138 V Transition:  allReady query: used=true, override=false, defer=0, states=Display{#0 state=ON size=1340x800 ROTATION_90}:true
+05-27 23:12:17.354  1165  1226 I libPowerHal: [perfLockAcq] idx:1 hdl:7564 hint:-1 pid:1155 duration:0 lock_user:vendor.samsung. => ret_hdl:7564
+05-27 23:12:17.354  1165  1226 I libPowerHal: [setClusterFreq] vendor.samsung.: sysfs_freq set cpu freq: 2000000 -1 2200000 -1 
+05-27 23:12:17.355  1703  5138 V Transition:  allReady query: used=true, override=false, defer=0, states=Display{#0 state=ON size=1340x800 ROTATION_90}:true
+05-27 23:12:17.355 30689 30703 D OpenGLRenderer: CacheManager::trimMemory(20)
+05-27 23:12:17.355 30689 30694 D InputTransport: Input channel destroyed: 'ClientS', fd=137
+05-27 23:12:17.357  1194  1244 D SurfaceFlinger: [SF client] REMOVE (0xb400007333814a00) for (30689:com.google.android.permissioncontroller)
+05-27 23:12:17.359  1703  1748 D WindowManager: SyncGroup 1416:  Unfinished container: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217} mSyncState=2
+05-27 23:12:17.361  2274  2511 I gralloc4: @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+05-27 23:12:17.361  2654  2654 I HoneySpace.HistoryPot: history item update 0
+05-27 23:12:17.363  1703  2976 D WindowManager: SyncGroup 1416:  Unfinished container: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217} mSyncState=2
+05-27 23:12:17.363  1703  2976 V WindowManager: Relayout Window{c76cba4 u0 com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService}: viewVisibility=8 req=67x97 ty=2226 d0
+05-27 23:12:17.367  1194  1194 I BufferQueueDebug: [com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService$_2654#5108](this:0xb400007331ca1790,id:-1,api:0,p:-1,c:1194) onDestructor()
+05-27 23:12:17.367  1194  1194 I Layer   : id=5108 Destroyed com.sec.android.app.launcher/com.samsung.app.honeyspace.edge.CocktailBarService$_2654#5108
+05-27 23:12:17.369  1703  2976 D WindowManager: SyncGroup 1416:  Unfinished container: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217} mSyncState=2
+05-27 23:12:17.370  1703  2976 V WindowManager: Relayout hash=c76cba4, pid=2654, syncId=-1: mAttrs={(0,175)(67x97) gr=TOP RIGHT CENTER sim={adjust=nothing forwardNavigation} layoutInDisplayCutoutMode=shortEdges ty=2226 fmt=TRANSPARENT
+05-27 23:12:17.370  1703  2976 V WindowManager:   fl=81800508
+05-27 23:12:17.370  1703  2976 V WindowManager:   pfl=2000070
+05-27 23:12:17.370  1703  2976 V WindowManager:   bhv=SHOW_TRANSIENT_BARS_BY_SWIPE
+05-27 23:12:17.370  1703  2976 V WindowManager:   fitTypes=NAVIGATION_BARS CAPTION_BAR
+05-27 23:12:17.370  1703  2976 V WindowManager:  dimAmount=0.0 dimDuration=0 naviIconColor=0
+05-27 23:12:17.370  1703  2976 V WindowManager:   sfl=20000}
+05-27 23:12:17.371  2654  2654 I ViewRootImpl@23b3aac[CocktailBarService]: Relayout returned: old=(1273,175,1340,272) new=(1273,175,1340,272) relayoutAsync=false req=(67,97)8 dur=7 res=0x0 s={false 0x0} ch=false seqId=0
+05-27 23:12:17.372  1703  2976 D WindowManager: SyncGroup 1416:  Unfinished container: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217} mSyncState=2
+05-27 23:12:17.373  2274  2511 I gralloc4: @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+05-27 23:12:17.374  1703  1745 D PkgPredictorService-SecIpmManagerServiceImpl: onForegroundActivitiesChanged pid:30689 uid:10199
+05-27 23:12:17.375 30689 30689 D ScrollView: initGoToTop
+05-27 23:12:17.375  1703  2834 V PkgPredictorService-SecIpmManagerServiceImpl: discard foreground app:com.google.android.permissioncontroller 1|true
+05-27 23:12:17.377  1703  1747 D SGM:FgCheckThread: noteResumeComponent(), received pkgName: com.google.android.permissioncontroller, userId: 0
+05-27 23:12:17.378  1703  2136 I CocktailBarManagerServiceContainer: handleMessage: entry what = 6
+05-27 23:12:17.378  1703  1747 D SGM:GameManager: identifyGamePackage. com.google.android.permissioncontroller, mCurrentUserId: 0, callerUserId: 0, callingMethodInfo: com.samsung.android.game.SemGameManager.isGamePackage(SemGameManager.java:109)
+05-27 23:12:17.378  1703  1747 D SGM:PkgDataHelper: getGamePkgData(). com.google.android.permissioncontroller
+05-27 23:12:17.379  1703  1747 D SGM:SemGameManager: isGamePackage(), pkgName=com.google.android.permissioncontroller, ret=false
+05-27 23:12:17.380  1703  3181 D AutoRotationHandler: not support this mode 
+05-27 23:12:17.380  1703  3181 D AutoRotationHandler: not support this mode 
+05-27 23:12:17.381  1703  2136 I CocktailBarManagerServiceContainer: handleMessage: entry what = 5
+05-27 23:12:17.382  2654  2654 I Edge.ActivityUtils: HomePackage : com.sec.android.app.launcher, resumePackageName : com.google.android.permissioncontroller
+05-27 23:12:17.391 30689 30689 I DecorView: setWindowBackground: isPopOver=false color=0 d=android.graphics.drawable.ColorDrawable@ceef757
+05-27 23:12:17.392  2274  2511 I gralloc4: @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+05-27 23:12:17.399  1194  1244 D SurfaceFlinger: [SF client] NEW(0xb4000073051dc100) for (30689:com.google.android.permissioncontroller)
+05-27 23:12:17.401 30689 30703 D NativeCustomFrequencyManager: [NativeCFMS] BpCustomFrequencyManager::BpCustomFrequencyManager()
+05-27 23:12:17.402  1703  1831 D InputTransport: Input channel constructed: 'c15a8cd', fd=833
+05-27 23:12:17.402  1703  1831 D InputTransport: Input channel constructed: 'c15a8cd', fd=835
+05-27 23:12:17.402  1703  1831 D InputTransport: Input channel constructed: 'c15a8cd', fd=885
+05-27 23:12:17.403  1703  1831 D WindowManager: prepareSync <SYNC_STATE_WAITING_FOR_DRAW>, mPrepareSyncSeqId=0, win=Window{c15a8cd u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity}
+05-27 23:12:17.403  1194  1986 E BufferQueueDebug: [c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity#5113](this:0xb4000073053b0790,id:-1,api:0,p:-1,c:-1) id info cannot be read from 'c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity#5113'
+05-27 23:12:17.403  1194  1986 I BufferQueueDebug: [c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity#5113](this:0xb4000073053b0790,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1194:/system/bin/surfaceflinger)
+05-27 23:12:17.403  1194  1986 I SurfaceFlinger: id=5113 createSurf, flag=84004, c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity#5113
+05-27 23:12:17.404  1703  1831 D RestrictionPolicy: isScreenCaptureEnabled : ret=true userId=0
+05-27 23:12:17.404  1703  1831 D InputTransport: Input channel destroyed: 'c15a8cd', fd=885
+05-27 23:12:17.405  2274  2511 I gralloc4: @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+05-27 23:12:17.405 30689 30689 I InsetsController: onStateChanged: host=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity, from=android.view.ViewRootImpl.setView:1753, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1340, 800), mDisplayCutout=DisplayCutout{insets=Rect(0, 0 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=0 displayHeight=0 physicalDisplayWidth=0 physicalDisplayHeight=0 density={0.0} cutoutSpec={} rotation={0} scale={0.0} physicalPixelDisplaySizeRatio={0.0}}}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=17, center=Point(17, 17)}, RoundedCorner{position=TopRight, radius=17, center=Point(1323, 17)}, RoundedCorner{position=BottomRight, radius=17, center=Point(1323, 783)}, RoundedCorner{position=BottomLeft, radius=17, center=Point(17, 783)}]}  mRoundedCornerFrame=Rect(0, 0 - 1340, 800), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(0, 0 - 58, 32) rotation=1}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=800 displayHeight=1340 physicalPixelDisplaySizeRatio=1.0 rotation=1 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {d6b90001 mType=navigationBars mFrame=[0,736][1340,800] mVisible=false mFlags=[]}, InsetsSource: {d6b90004 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags=[]}, InsetsSource: {d6b90005 mType=mandatorySystemGestures mFrame=[0,736][1340,800] mVisible=true mFlags=[]}, InsetsSource: {d6b90006 mType=tappableElement mFrame=[0,736][1340,800] mVisible=true mFlags=[]}, InsetsSource: {d6b90024 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags=[]}, InsetsSource: {e1b60000 mType=statusBars mFrame=[0,0][1340,32] mVisible=false mFlags=[]}, InsetsSource: {e1b60005 mType=mandatorySystemGestures mFrame=[0,0][1340,32] mVisible=true mFlags=[]}, InsetsSource: {e1b60006 mType=tappableElement mFrame=[0,0][1340,32] mVisible=true mFlags=[]}, InsetsSource: {3 mType=ime mFrame=[0,0][0,0] mVisible=false mFlags=[]} }
+05-27 23:12:17.406 30689 30689 I ViewRootImpl@4b6a5ba[GrantPermissionsActivity]: synced displayState. AttachInfo displayState=2
+05-27 23:12:17.406 30689 30689 I ViewRootImpl@4b6a5ba[GrantPermissionsActivity]: setView = com.android.internal.policy.DecorView@9adec61 TM=true
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.407 30689 30689 D AnimatorSet: mReversing is false. Don't call initChildren.
+05-27 23:12:17.409  1703  1831 D CoreBackPreview: Window{c15a8cd u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@c03a493, mPriority=0, mIsAnimationCallback=false}
+05-27 23:12:17.409  1703  1831 V WindowManager: Relayout Window{c15a8cd u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity}: viewVisibility=0 req=511x0 ty=1 d0
+05-27 23:12:17.409  1703  1831 D RestrictionPolicy: isScreenCaptureEnabled : ret=true userId=0
+05-27 23:12:17.410  1194  1986 E BufferQueueDebug: [com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity$_30689#5114](this:0xb4000073053d5790,id:-1,api:0,p:-1,c:-1) id info cannot be read from 'com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity$_30689#5114'
+05-27 23:12:17.410  1194  1986 I BufferQueueDebug: [com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity$_30689#5114](this:0xb4000073053d5790,id:-1,api:0,p:-1,c:-1) BufferQueue core=(1194:/system/bin/surfaceflinger)
+05-27 23:12:17.410  1194  1986 I SurfaceFlinger: id=5114 createSurf, flag=44004, com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity$_30689#5114
+05-27 23:12:17.410  1703  1831 D WindowManager: makeSurface duration=1 name=com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity$_30689
+05-27 23:12:17.412  1703  1831 D WindowManager: SyncGroup 1416:  Unfinished container: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217} mSyncState=2
+05-27 23:12:17.413 30689 31796 I ViewRootImpl@4b6a5ba[GrantPermissionsActivity]: Resizing android.view.ViewRootImpl@798465b: frame = [414,800][925,800] reportDraw = true forceLayout = false syncSeqId = -1
+05-27 23:12:17.413  1703  1831 V WindowManager: Changing focus from null to Window{c15a8cd u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity} displayId=0 Callers=com.android.server.wm.RootWindowContainer.updateFocusedWindowLocked:578 com.android.server.wm.WindowManagerService.updateFocusedWindowLocked:6881 com.android.server.wm.WindowManagerService.relayoutWindow:2755 com.android.server.wm.Session.relayout:282 
+05-27 23:12:17.414  1703  1831 D WindowManager: updateSystemBarAttributes: displayId=0, win=Window{c15a8cd u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity}, navColorWin=null, focusedCanBeNavColorWin=false, behavior=1, appearance=0, statusBarAppearanceRegions=[AppearanceRegion{ bounds=[0,0][1340,800]}], requestedVisibilities=-9, from=com.android.server.wm.DisplayPolicy.focusChangedLw:2947 com.android.server.wm.DisplayContent.updateFocusedWindowLocked:4894 com.android.server.wm.RootWindowContainer.updateFocusedWindowLocked:578 
+05-27 23:12:17.414  1703  1831 V WindowManager: Relayout hash=c15a8cd, pid=30689, syncId=-1: mAttrs={(0,0)(wrapxwrap) gr=BOTTOM CENTER sim={state=always_hidden adjust=nothing forwardNavigation} ty=BASE_APPLICATION fmt=TRANSPARENT wanim=0x10302f5 surfaceInsets=Rect(3, 3 - 3, 3)
+05-27 23:12:17.414  1703  1831 V WindowManager:   fl=1800002
+05-27 23:12:17.414  1703  1831 V WindowManager:   pfl=42080000
+05-27 23:12:17.414  1703  1831 V WindowManager:   apr=LIGHT_NAVIGATION_BARS
+05-27 23:12:17.414  1703  1831 V WindowManager:   bhv=DEFAULT
+05-27 23:12:17.414  1703  1831 V WindowManager:   fitTypes=STATUS_BARS NAVIGATION_BARS CAPTION_BAR
+05-27 23:12:17.414  1703  1831 V WindowManager:  dimAmount=0.0 naviIconColor=0
+05-27 23:12:17.414  1703  1831 V WindowManager:   sfl=100000}
+05-27 23:12:17.415  1703  1747 I GameSDK@LifeCycle: noteResumeComponent(): package name  : com.google.android.permissioncontroller
+05-27 23:12:17.418  1703  1748 D SurfaceComposerClient: Transaction::apply InputWindowCommands.focusRequests timestamp=2885114362401, windowName=c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity
+05-27 23:12:17.424  2274  2511 I gralloc4: @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+05-27 23:12:17.426  4116  4162 I SDHMS:l : onTaskStackChanged
+05-27 23:12:17.427  2654 29390 I HoneySpace.RecentTasks: onRecentTasksChanged
+05-27 23:12:17.430  1703 32150 I SystemUiVisibilityPolicyController: handleMessage: entry what = 1
+05-27 23:12:17.431  2654 29390 I HoneySpace.HistoryViewModel: loadItems() called - 0
+05-27 23:12:17.431  2274  2274 D BarTransitions.FrameLayout: MODE_LIGHTS_OUT_TRANSPARENT -> MODE_TRANSPARENT animate=false
+05-27 23:12:17.431  2274  2274 D SamsungStatusBarGrayIconHelper: isGrayAppearance=false
+05-27 23:12:17.432  2654  4638 I HoneySpace.HistoryViewModel: loadItems() called - 200
+05-27 23:12:17.432  2654  2752 I HoneySpace.TaskbarEventTracker: invokeEvent() called with: event = OnSystemBarAttributesChanged(displayId=0, behavior=1)
+05-27 23:12:17.432  2654  2752 I HoneySpace.TaskbarEventTracker: invokeEvent() called with: event = HandleNavigationBarEvent(eventData=NavBarEvents(eventType=ON_APPEARANCE_CHANGED, iconType=null, remoteViewBundle=null, iconBitmapBundle=null, orderDefault=true, position=0, rotationLocked=false, transientShowing=false, appearance=0, pluginBundle=null, hiddenByKnox=false, insetsBundle=null))
+05-27 23:12:17.432  2274  2274 D TaskbarDelegate: onSystemBarAttributesChanged() -  displayId:0, appearance:0, navbarColorManagedByIme: false, packageName: com.google.android.permissioncontroller
+05-27 23:12:17.433  1194  1194 D SurfaceFlinger: Focus addInputWindowCommands timestamp=2885114362401, windowName=c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity
+05-27 23:12:17.433  2654  2654 I HoneySpace.TaskbarPot: HandleNavigationBarEvent: ON_APPEARANCE_CHANGED
+05-27 23:12:17.433  2654  2654 I HoneySpace.TaskbarPot: updateAppearance appearance:0
+05-27 23:12:17.434  1194  1194 D SurfaceFlinger: Find Focus windowName=c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity, notVisible=1
+05-27 23:12:17.434  1194  1194 D Layer   : Focus: ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217}#5112 isHiddenByPolicy s.flags&layer_state_t::eLayerHidden=1
+05-27 23:12:17.434  1194  1194 D Layer   : Focus: isHiddenByPolicy parent ActivityRecord{7964ca3 u0 com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity t217}#5112 is hidden cause not visible
+05-27 23:12:17.434  1194  1194 D SurfaceFlinger: Focus inVisible Reason:isVisibleForInput(){hasInputInfo()?canReceiveInput():isVisible()}=0 has=1 can{!isHiddenByPolicy()&&(mBuffer==nullptr||getAlpha()>0.0f)}=0 Hidden=1 Buf=1 getA=1
+05-27 23:12:17.435  1194  1415 D SurfaceFlinger: updateWinowInfo=1, setFocusedWindow timestamp=2885114362401, windowName=c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity
+05-27 23:12:17.435  1703  1831 D InputDispatcher: Focus request (0): c15a8cd com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity but waiting because NOT_VISIBLE
+05-27 23:12:17.435  1146  1146 I hwcomposer: [HWCDisplay] [Display_0 (type:1)] fps:59.155838,dur:1014.27,max:32.53,min:13.19  
+05-27 23:12:17.436  2274  2274 D Navbar.Store: handleEvent(0) OnNavBarTransitionModeChanged(transitionMode=0) [Module] TaskbarDelegate
+05-27 23:12:17.436  2274  2274 D Navbar.Store: --[Band]GESTURE_PACK_SHOW_FLOATING_GAMETOOLS_ICON
+05-27 23:12:17.436  2274  2274 D SysUiState: SysUiState changed: old=0x11000002 new=0x10020002

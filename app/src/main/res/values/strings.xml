@@ -124,4 +124,9 @@
     <string name="text_print">טקסט בעברית</string>
     <!--table explain-->
     <string name="table_instruction">specifications: Bluetooth printing table could only provide examples and printing test. Specific methods could refer to Epson instruction set.  </string>
+    <string name="img">img</string>
+    <string name="reload">בעיות גישה, לחץ לטעינה מחדש.</string>
+    <string name="logo">logo</string>
+    <string name="barcode">barcode</string>
+    <string name="input_logo">input_logo</string>
 </resources>

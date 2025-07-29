@@ -1,6 +1,7 @@
 package com.credix.pinpaddriverwithandroidusage;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -10,6 +11,7 @@ import android.os.Bundle;
 import android.view.Display;
 import android.view.View;
 import android.view.Window;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -27,13 +29,7 @@ public class LoginActivity extends BaseActivity {
     private FirebaseAnalytics mFirebaseAnalytics;
     private Display displays[];
     private MediaRouter mMediaRouter;
-
-
     private static final int MY_CAMERA_REQUEST_CODE = 100;
-
-
-
-
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -45,19 +41,13 @@ public class LoginActivity extends BaseActivity {
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             WebView.enableSlowWholeDocumentDraw();
         }
-
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.activity_main_login);
-
         setContentView(R.layout.activity_main);
-
 
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, MY_CAMERA_REQUEST_CODE);
         }
-
-
-
         progress = findViewById(R.id.progress);
 
         reloadView = findViewById(R.id.reload);
@@ -65,9 +55,6 @@ public class LoginActivity extends BaseActivity {
 
         Intent intent = getIntent();
         url = intent.getStringExtra("URL");
-
-
-
         wv.requestFocus(View.FOCUS_DOWN);
 
         wv.getSettings().setJavaScriptEnabled(true);
@@ -76,14 +63,7 @@ public class LoginActivity extends BaseActivity {
         wv.getSettings().setSupportMultipleWindows(true);
         wv.setFocusable(true);
         wv.setFocusableInTouchMode(true);
-
-
-
-
-
         wv.setWebViewClient(new WebViewClient() {
-
-
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
@@ -92,14 +72,16 @@ public class LoginActivity extends BaseActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                View current = getCurrentFocus();
+                if (current != null) {
+                    imm.hideSoftInputFromWindow(current.getWindowToken(), 0);
+                }
 
                 reloadView.setVisibility(View.GONE);
                 progress.setVisibility(View.GONE);
 //                redirect(url);
             }
-
-
-
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (url.endsWith("modules/stock/cashbox_fe"))
@@ -107,20 +89,13 @@ public class LoginActivity extends BaseActivity {
                     Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                     startActivity(intent);
                     finish();
-
-
                 }else
                 {
                     view.loadUrl(url);
                 }
-
                 return true;
             }
         });
-
         wv.loadUrl(url);
-
     }
-
-
 }

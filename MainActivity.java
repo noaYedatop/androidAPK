@@ -144,7 +144,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     /*SCREENS*/
 //    public static final String MAIN_PATH = "https://kupa.yedatop.com";
 //    public static final String MAIN_PATH = "https://office1.yedatop.com";
-    public static final String MAIN_PATH = "https://"+DOMAIN+".yedatop.com";
+    public static final String MAIN_PATH = "https://"+DOMAIN+".com";
     //public static final String MAIN_PATH = "https://dangot.yedatop.com";
 
     private static final String[] BLOCKED_SCREENS = new String[]{
@@ -220,7 +220,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     private void connectImin(){
         try {
             mElectronic = new Electronic.Builder()
-                    .setDevicePath("/dev/ttyS4").setBaudrate(9600)
+                    .setDevicePath("/dev/ttyS1").setBaudrate(9600)
                     .setReceiveCallback(iMinCallback)
                     .builder();
 //            current_platform = PLATFORMS.IMIN;
@@ -285,7 +285,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         super.onResume();
         inProcess = false;
         if (input_barcode != null )
-            input_barcode.requestFocus();
+//            input_barcode.requestFocus();
         dll = null;
         lastCreditPayTime = 0;
 
@@ -948,7 +948,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        if(BuildConfig.DOMAIN != "liv" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if(BuildConfig.DOMAIN != "liv" &&  BuildConfig.DOMAIN != "liv2" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             WebView.enableSlowWholeDocumentDraw();
         }
 
@@ -988,11 +988,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         findViewById(R.id.btnDummyPayment).setOnClickListener(this);
 
 
-        connectImin();
+          connectImin();
 
 
         initWebView();
-        if (BuildConfig.DOMAIN != "liv") {
+        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "liv2" ) {
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
             setListenerToRootView();
         }
@@ -1150,7 +1150,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.getSettings().setDomStorageEnabled(true);
 
-        if (BuildConfig.DOMAIN != "liv")
+        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "liv2")
         {
             webView.setOnTouchListener(new View.OnTouchListener() {
                 @Override
@@ -1159,7 +1159,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 //                if (focusKeyboard) {
                     MainActivity.this.hideSoftKeyboard(null);
 
-                    input_barcode.requestFocus();
+                  //  input_barcode.requestFocus();
                     Utils.hideSystemUI(getWindow());
 //                }
 
@@ -1374,7 +1374,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         });
 */
 
-        webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe?dangot=1");
+        webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1");
         // webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe");
 //        webView.postUrl("https://office1.yedatop.com/modules/stock/rep_tazmech_print.php?&simple=1&sDate=01/02/2021&eDate=18/02/2021",("zedmode=1&journum=104").getBytes());
     }
@@ -1568,6 +1568,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
         @JavascriptInterface
         public void open_drw(){
+
             openDrawer();
         }
 
@@ -2070,7 +2071,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         @JavascriptInterface
         public String getTransactionsReport(String com, String wisepayCode)
         {
-            if (BuildConfig.DOMAIN == "liv" ){
+            if (BuildConfig.DOMAIN == "liv" || BuildConfig.DOMAIN == "liv2"){
                     return "";
                 }else{
                 apiDll = new Api();

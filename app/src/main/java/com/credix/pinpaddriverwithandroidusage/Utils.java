@@ -51,7 +51,7 @@ public class Utils {
                     Toast.makeText(ctx, "יש לעדכן הגדרות שפה מקלדת וירטואלית מוגדרת לא תקין", Toast.LENGTH_LONG).show();
 
                 }
-            }, 5000);
+            }, 5000);//5000
         }
     }
     public static void hideSystemUI(Window window) {
@@ -142,5 +142,6 @@ public class Utils {
         cmd.append(cmd.getOpenMoneyBoxCmd());
         rtPrinter.writeMsg(cmd.getAppendCmds());
     }
+
 
 }

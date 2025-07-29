@@ -10,8 +10,8 @@
     {
       "type": "SINGLE",
       "filters": [],
-      "versionCode": 58,
-      "versionName": "v3.0.6",
+      "versionCode": 63,
+      "versionName": "v3.0.8",
       "outputFile": "app-office3-release.apk"
     }
   ]

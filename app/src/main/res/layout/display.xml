@@ -1,34 +1,210 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_centerInParent="true"
-        android:src="@drawable/logo1"
-        android:id="@+id/display_image"
-        />
+    <!-- VideoView or alternateText -->
     <VideoView
-        android:layout_width="wrap_content"
+        android:id="@+id/videoView"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:src="@drawable/logo1"
         android:visibility="gone"
-        android:id="@+id/display_vid"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
-        android:id="@+id/you_tube_player"
-        android:layout_width="match_parent"
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.6" />
+
+
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/fixedTitle"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/light_gray"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.76"
+        app:layout_constraintHeight_percent="0.09">
+
+        <!-- Product Name Header -->
+        <TextView
+            android:id="@+id/headerProductName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="      שם מוצר"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/headerQuantity"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintWidth_percent="0.37" />
+
+        <!-- Quantity Header -->
+        <TextView
+            android:id="@+id/headerQuantity"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="כמות"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            app:layout_constraintStart_toEndOf="@id/headerProductName"
+            app:layout_constraintEnd_toStartOf="@id/headerPrice"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintWidth_percent="0.3" />
+
+        <!-- Price Header -->
+        <TextView
+            android:id="@+id/headerPrice"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="מחיר"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            app:layout_constraintStart_toEndOf="@id/headerQuantity"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintWidth_percent="0.3" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+    <TextView
+        android:id="@+id/alternateText"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:text="אין מוצרים בחשבון"
+        android:background="@color/light_gray"
+        android:gravity="center"
+        android:textSize="25sp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/fixedTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.76" />
 
-        app:videoId="S0Q4gqBUs7c"
-        app:autoPlay="false"
-        app:showFullScreenButton="true"
+    <!-- ScrollView for product list -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/fixedTitle"
+        app:layout_constraintBottom_toTopOf="@id/summaryRow"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.76">
 
-        android:visibility="gone"/>
+        <!-- LinearLayout for the content -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-</RelativeLayout>
+            <!-- TableLayout with percentage width inside a LinearLayout -->
+            <TableLayout
+                android:id="@+id/tableLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintWidth_percent="0.76"
+                android:background="@color/light_gray" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Fixed Images (Stacked One Above the Other) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/fixedImagesContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.24"
+        app:layout_constraintHeight_percent="1">
+
+        <ImageView
+            android:id="@+id/logo_first"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="fitCenter"
+            app:layout_constraintWidth_percent="1"
+            app:layout_constraintHeight_percent="0.33"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <ImageView
+            android:id="@+id/logo_secend"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="fitCenter"
+            app:layout_constraintWidth_percent="1"
+            app:layout_constraintHeight_percent="0.33"
+            app:layout_constraintTop_toBottomOf="@id/logo_first"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <ImageView
+            android:id="@+id/logo_meytal"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="fitCenter"
+            app:layout_constraintWidth_percent="1"
+            app:layout_constraintHeight_percent="0.34"
+            app:layout_constraintTop_toBottomOf="@id/logo_secend"
+            app:layout_constraintStart_toStartOf="parent"
+            android:src="@drawable/logo_meytal" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Summary row at the bottom (now using ConstraintLayout) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/summaryRow"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.76"
+        app:layout_constraintHeight_percent="0.09"
+        android:padding="5dp"
+        android:background="@drawable/top_border">
+
+        <!-- Total labels and values -->
+        <TextView
+            android:id="@+id/totalLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="    סך הכל לתשלום:"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:gravity="start"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintWidth_percent="0.5" />
+
+        <TextView
+            android:id="@+id/totalPrice"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textColor="#000000"
+            android:gravity="start"
+            android:textSize="30sp"
+            app:layout_constraintStart_toEndOf="@id/totalLabel"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintWidth_percent="0.5" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

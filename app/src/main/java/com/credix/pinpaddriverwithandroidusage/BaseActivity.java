@@ -7,10 +7,14 @@ import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.app.Presentation;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.device.DeviceManager;
 import android.device.PrinterManager;
 import android.graphics.Bitmap;
@@ -20,9 +24,11 @@ import android.graphics.Paint;
 import android.hardware.display.DisplayManager;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.media.MediaRouter;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.StrictMode;
 import android.util.Log;
 import android.view.Display;
@@ -34,14 +40,17 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.ahmedelsayed.sunmiprinterutill.PrintMe;
+//import com.ahmedelsayed.sunmiprinterutill.PrintMe;
 import com.imin.library.IminSDKManager;
 import com.imin.printerlib.IminPrintUtils;
 import com.neostra.electronic.Electronic;
@@ -59,16 +68,25 @@ import org.json.JSONArray;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+
+import com.credix.pinpaddriverwithandroidusage.GPIOUtils;
+
 
 public class BaseActivity extends AppCompatActivity {
 
-    public PrintMe sunmi;
+    //public PrintMe sunmi;
     public UsbManager mUsbManager;
     public UsbDevice mUsbDevice;
     private MyPresentation mPresentation;
+    private MyPresentation mPresentationScreeen;
+    private List<Product> productList;
     private Display[] displays;
     public WebView addedReceiptWebView;
     public static RTPrinter rtPrinter = null;
@@ -99,6 +117,12 @@ public class BaseActivity extends AppCompatActivity {
     public String barcode = "";
     public Bitmap barcodeBitmap = null;
     public Bitmap logo;
+    private Context context;
+
+    public boolean isDrawerOpen = false;
+    public String fileName = GPIOUtils.Cash_3288; // Example GPIO file
+
+
     @TargetApi(Build.VERSION_CODES.O)
     private void disableAutofill() {
         if(Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1) {
@@ -117,6 +141,23 @@ public class BaseActivity extends AppCompatActivity {
             //resume tasks needing this permission
         }
     }
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(updateLocale(newBase));
+    }
+
+   public static Context updateLocale(Context context) {
+        // קבלת שפת ברירת המחדל ששמורה בהגדרות
+        String languageCode = context.getSharedPreferences("Settings", Context.MODE_PRIVATE)
+                .getString("My_Lang", "he");  // ברירת מחדל: עברית
+
+        Locale locale = new Locale(languageCode);
+        Locale.setDefault(locale);
+
+        Configuration config = new Configuration();
+        config.setLocale(locale);
+        return context.createConfigurationContext(config);
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -129,18 +170,195 @@ public class BaseActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         disableAutofill();
-
+        //loadLocale();
         inputMethodManager = (InputMethodManager) BaseActivity.this.getSystemService(Activity.INPUT_METHOD_SERVICE);
 
-        sunmi = new PrintMe(this);
+        //sunmi = new PrintMe(this);
 
         mDevice = new DeviceManager();
         mPrinterManager = new PrinterManager();
         try {
             mPrinterManager.open();
         }catch ( Exception e){}
+
+        //presenet product
+
+        context = this; // Save context reference for later use
+        productList = new ArrayList<>();
+        context = this;
+
     }
 
+    public void setLocale(String languageCode) {
+        Locale locale = new Locale(languageCode);
+        Locale.setDefault(locale);
+        Resources resources = getResources();
+        Configuration config = resources.getConfiguration();
+        config.setLocale(locale);
+        getBaseContext().getResources().updateConfiguration(config, resources.getDisplayMetrics());
+
+        // שמירת השפה ב-SharedPreferences
+        SharedPreferences.Editor editor = getSharedPreferences("Settings", MODE_PRIVATE).edit();
+        editor.putString("My_Lang", languageCode);
+        editor.apply();
+
+        // שימוש ב-Handler כדי למנוע בעיות קריסה
+        new Handler(Looper.getMainLooper()).postDelayed(() -> recreate(), 200);
+    }
+
+    // פונקציה שטוענת את השפה השמורה
+    public void loadLocale() {
+        SharedPreferences prefs = getSharedPreferences("Settings", MODE_PRIVATE);
+        String language = prefs.getString("My_Lang", "he"); // ברירת מחדל: עברית
+        setLocale(language);
+    }
+
+    public void showVideo(String name){
+
+        if (mPresentationScreeen == null || !mPresentationScreeen.isShowing()) {
+            MediaRouter mediaRouter = (MediaRouter) getSystemService(Context.MEDIA_ROUTER_SERVICE);
+            if (mediaRouter != null) {
+                MediaRouter.RouteInfo route = mediaRouter.getSelectedRoute(MediaRouter.ROUTE_TYPE_LIVE_VIDEO);
+                if (route != null) {
+                    Display presentationDisplay = route.getPresentationDisplay();
+                    if (presentationDisplay != null) {
+                        mPresentationScreeen = new MyPresentation(this, presentationDisplay);
+                        mPresentationScreeen.show();
+                    }
+                }
+            }
+        }
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.displayVidoe(name);
+        }
+    }
+
+    public void showPicture(String name){
+        if (mPresentationScreeen == null || !mPresentationScreeen.isShowing()) {
+            MediaRouter mediaRouter = (MediaRouter) getSystemService(Context.MEDIA_ROUTER_SERVICE);
+            if (mediaRouter != null) {
+                MediaRouter.RouteInfo route = mediaRouter.getSelectedRoute(MediaRouter.ROUTE_TYPE_LIVE_VIDEO);
+                if (route != null) {
+                    Display presentationDisplay = route.getPresentationDisplay();
+                    if (presentationDisplay != null) {
+                        mPresentationScreeen = new MyPresentation(this, presentationDisplay);
+                        mPresentationScreeen.show();
+                    }
+                }
+            }
+        }
+
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.displayPicture(name);
+        }
+    }
+
+    public void showLogo(String name){
+        MediaRouter mediaRouter = (MediaRouter) getSystemService(Context.MEDIA_ROUTER_SERVICE);
+        if (mediaRouter != null) {
+            MediaRouter.RouteInfo route = mediaRouter.getSelectedRoute(1);
+            if (route != null) {
+                Display presentationDisplay = route.getPresentationDisplay();
+                if (presentationDisplay != null) {
+                    if (mPresentationScreeen == null || !mPresentationScreeen.isShowing()) {
+                        mPresentationScreeen = new MyPresentation(this, presentationDisplay, productList);
+                        mPresentationScreeen.show();
+                        mPresentationScreeen.displayLogo(name);
+
+                    } else {
+                        mPresentationScreeen.displayLogo(name);
+                    }
+                } else {
+                    // Handle case where presentationDisplay is null
+                }
+            } else {
+                // Handle case where route is null
+            }
+        } else {
+            // Handle case where mediaRouter is null
+        }
+    }
+
+    public void startProductPresentation(String name,String prod, double amount, Double price,int index,double totalAmount) {
+        MediaRouter mediaRouter = (MediaRouter) getSystemService(Context.MEDIA_ROUTER_SERVICE);
+        if (mediaRouter != null) {
+            MediaRouter.RouteInfo route = mediaRouter.getSelectedRoute(1);
+            if (route != null) {
+                Display presentationDisplay = route.getPresentationDisplay();
+
+                if (presentationDisplay != null) {
+                    productList.add(new Product(prod, amount, price,index,0,0,""));
+
+                    if (mPresentationScreeen == null || !mPresentationScreeen.isShowing()) {
+                        mPresentationScreeen = new MyPresentation(this, presentationDisplay, productList);
+                        mPresentationScreeen.show();
+                        mPresentationScreeen.updateProducts(productList,totalAmount);
+
+                    } else {
+                        mPresentationScreeen.updateProducts(productList,totalAmount); // Update products
+                    }
+                } else {
+                    // Handle case where presentationDisplay is null
+                }
+            } else {
+                // Handle case where route is null
+            }
+        } else {
+            // Handle case where mediaRouter is null
+        }
+    }
+
+        public void removeProductFromPresentation(int index, double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.removeProduct(index,totalprice);
+        }
+    }
+
+    public void plusCountProdFromPresentation(int index,double price, double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.plusCountProdFromPresentation(index,price,totalprice);
+        }
+    }
+
+    public void minusCountProdFromPresentation(int index,double price, double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.minusCountProdFromPresentation(index,price,totalprice);
+        }
+    }
+
+    public void changeCountProdFromPresentation(int index,int count, double totalpriceprod, double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.changeCountProdFromPresentation(index,count,totalpriceprod,totalprice);
+        }
+    }
+    public void addAnachaProdFromPresentation(int index,int count, double totalpriceprod,double anacha,double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.addAnachaProdFromPresentation(index,count,totalpriceprod,anacha,totalprice);
+        }
+    }
+    public void addDiscountProdFromPresentation(int index,String discountName,double discount ,double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.addDiscountProdFromPresentation(index,discountName,discount,totalprice);
+        }
+    }
+    public void addAnachaGeneralFromPresentation(double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.addAnachaGeneralFromPresentation(totalprice);
+        }
+    }
+
+    public void changeTotalPriceProduct(double totalprice) {
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.changeTotalPriceProduct(totalprice);
+        }
+    }
+
+
+    public void stopProducrpresentation(){
+        if (mPresentationScreeen != null) {
+            mPresentationScreeen.clearDisplayedProducts();
+        }
+    }
     private boolean checkPermission() {
         int result = ContextCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
         if (result == PackageManager.PERMISSION_GRANTED) {
@@ -163,6 +381,7 @@ public class BaseActivity extends AppCompatActivity {
             mPresentation.setOnDismissListener(mOnDismissListener);
 
         if (Build.VERSION.SDK_INT >= 23) {
+
             if (checkPermission())
             {
                 // Code for above or equal 23 API Oriented Device
@@ -190,11 +409,8 @@ public class BaseActivity extends AppCompatActivity {
             };
 
     public void registerPrinter(Context mContext){
-
         mIminPrintUtils = IminPrintUtils.getInstance(BaseActivity.this);
-
         mIminPrintUtils.initPrinter(IminPrintUtils.PrintConnectType.USB);
-
         mUsbManager = (UsbManager) mContext.getSystemService(Context.USB_SERVICE);
         HashMap<String, UsbDevice> deviceList = mUsbManager.getDeviceList();
         Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
@@ -207,7 +423,10 @@ public class BaseActivity extends AppCompatActivity {
             }
 
         }
-
+        if (mUsbDevice == null) {
+            Log.e("PrinterSetup", "No suitable USB device found.");
+            return;
+        }
         PendingIntent mPermissionIntent = PendingIntent.getBroadcast(
                 BaseActivity.this,
                 0,
@@ -247,8 +466,8 @@ public class BaseActivity extends AppCompatActivity {
     public PLATFORMS getPlatform() {
          if (mIminPrintUtils != null && mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB) != -1 && mIminPrintUtils.getUsbPrinter() != null) {
             return PLATFORMS.IMIN;
-        } else if (sunmi.aidlUtil.isConnect()) {
-            return PLATFORMS.SUNMI;
+//        } else if (sunmi.aidlUtil.isConnect()) {
+//            return PLATFORMS.SUNMI;
         }else if(checkIfMprinter()){
             return PLATFORMS.UROVO;
         }
@@ -283,6 +502,8 @@ public class BaseActivity extends AppCompatActivity {
 
         if (mPresentation == null ){
             mPresentation = new MyPresentation(this,displays[0]);
+            // mPresentation = new MyPresentation(this, presentationDisplay, productList);
+
         }
         try {
             mPresentation.show();
@@ -307,8 +528,20 @@ public class BaseActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isPrinterAvailable() {
+        String manufacturer = android.os.Build.MANUFACTURER.toLowerCase();
+        String model = android.os.Build.MODEL.toLowerCase();
 
+        if(manufacturer.contains("rockchip") && model.contains("rk3288")){
+            return false;
+        }
+        return true;
+    }
     public void initPrinter() {
+        if (!isPrinterAvailable()) {
+            Log.w("PrinterInit", "No printer available. Skipping printer initialization.");
+            return;
+        }
         BaseApp.instance.setCurrentCmdType(BaseEnum.CMD_PIN);
 
         printerFactory = new PinPrinterFactory();
@@ -319,7 +552,7 @@ public class BaseActivity extends AppCompatActivity {
         if (rtPrinter == null){
             initPrinter();
         }
-        openDrawer();
+       openDrawer();
 
         handler.postDelayed(printerRunnable,50);
     }
@@ -329,14 +562,18 @@ public class BaseActivity extends AppCompatActivity {
         @Override
         public void run() {
             try{
-                int added_height = 30;
+                 int added_height = 30;
                 if(barcodeBitmap != null){
                     added_height = -250;
                 }
                 else if (getPlatform() == PLATFORMS.UROVO){
                     added_height = 00;
                 }else if (getPlatform() == PLATFORMS.iPOS){
-                    added_height = 50;
+                    //added_height = 50;
+                    added_height = 00;
+                }
+                else if (getPlatform() == PLATFORMS.IMIN){
+                    added_height = -300;
                 }
                 addedReceiptWebView.measure(View.MeasureSpec.makeMeasureSpec(
                         View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED),
@@ -344,9 +581,12 @@ public class BaseActivity extends AppCompatActivity {
 //                int height = addedReceiptWebView.getContentHeight() > 850?addedReceiptWebView.getMeasuredHeight(): addedReceiptWebView.getContentHeight();
 
 
+
                 addedReceiptWebView.layout(0, 0, addedReceiptWebView.getMeasuredWidth(), height+added_height);
 
                 Bitmap bitmap = Bitmap.createBitmap(addedReceiptWebView.getWidth(), height+added_height, Bitmap.Config.ARGB_8888);
+
+
 
                 Canvas canvas = new Canvas(bitmap);
                 Paint paint = new Paint();
@@ -367,8 +607,13 @@ public class BaseActivity extends AppCompatActivity {
                     mIminPrintUtils.printSingleBitmap(bitmap, 1);
                     if (barcode.length() > 1) {
                         if(barcodeBitmap == null) {
-                            mIminPrintUtils.printAndFeedPaper(100);
-                            mIminPrintUtils.printBarCode(73, barcode, 1);
+//                            mIminPrintUtils.printAndFeedPaper(0);
+                            mIminPrintUtils.setBarCodeHeight(80);
+                          //  mIminPrintUtils.setBarCodeWidth(200);
+
+//                            mIminPrintUtils.printBarCode(73, barcode, 1);
+                            //connectType = 0;
+                            mIminPrintUtils.printBarCode(2, barcode, 1);
                         } else {
                             mIminPrintUtils.printSingleBitmap(barcodeBitmap, 1);
                         }
@@ -418,33 +663,33 @@ public class BaseActivity extends AppCompatActivity {
 
                     }
                 }
-                else if (getPlatform() == PLATFORMS.SUNMI) {
-                    if (logo != null){
-                        if (logo.getWidth() < 350)
-                            logo = Bitmap.createScaledBitmap(logo, 350, 150, false);
-
-                        sunmi.sendImageToPrinter(logo);
-                        sunmi.aidlUtil.print3Line();
-                    }
-
-                    sunmi.sendImageToPrinter(bitmap);
-
-                    if (barcode.length() > 1){
-                        sunmi.aidlUtil.printBarCode(barcode,8 /*code 128*/,80,2,0);
-                        sunmi.aidlUtil.print3Line();
-                    }
-                    sunmi.aidlUtil.print3Line();
-                    CutPaper();
-
-                    if (data.length() > 1) {
-
-                        handler.postDelayed(printAnother, 600);
-                    }else{
-
-                        clearPrinterResources();
-
-                    }
-                }
+//                else if (getPlatform() == PLATFORMS.SUNMI) {
+//                    if (logo != null){
+//                        if (logo.getWidth() < 350)
+//                            logo = Bitmap.createScaledBitmap(logo, 350, 150, false);
+//
+//                        sunmi.sendImageToPrinter(logo);
+//                        sunmi.aidlUtil.print3Line();
+//                    }
+//
+//                    sunmi.sendImageToPrinter(bitmap);
+//
+//                    if (barcode.length() > 1){
+//                        sunmi.aidlUtil.printBarCode(barcode,8 /*code 128*/,80,2,0);
+//                        sunmi.aidlUtil.print3Line();
+//                    }
+//                    sunmi.aidlUtil.print3Line();
+//                    CutPaper();
+//
+//                    if (data.length() > 1) {
+//
+//                        handler.postDelayed(printAnother, 600);
+//                    }else{
+//
+//                        clearPrinterResources();
+//
+//                    }
+//                }
                 else
                 {
 
@@ -477,24 +722,55 @@ public class BaseActivity extends AppCompatActivity {
     };
 
     public void openDrawer() {
+        String manufacturer = Build.MANUFACTURER.toLowerCase();
+        String deviceName = Build.MODEL;
+//        IminSDKManager.opencashBox();
 
         if (getPlatform() == PLATFORMS.IMIN){
-            IminSDKManager.opencashBox();
-        }else if (getPlatform() == PLATFORMS.SUNMI){
-            sunmi.aidlUtil.sendRawData(new byte [] {0x10, 0x14, 0x00, 0x00,0x00});
-        }else{
-            Utils.openDrawer(rtPrinter);
+            if(manufacturer.contains("rockchip") && deviceName.contains("rk3288")){
+                GPIOUtils.witchStatus((byte) 0x31, fileName); // פותח את המגירה
+
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        GPIOUtils.witchStatus((byte) 0x30, fileName);
+                    }
+                },500);
+                isDrawerOpen = true;
+            }
+            else{
+                IminSDKManager.opencashBox();
+            }
+            //CashDrawerOpener.openCashDrawer(getApplicationContext());
+//        }else if (getPlatform() == PLATFORMS.SUNMI){
+//            sunmi.aidlUtil.sendRawData(new byte [] {0x10, 0x14, 0x00, 0x00,0x00});
         }
+        //else if (getPlatform() == PLATFORMS.iPOS || getPlatform() == PLATFORMS.UROVO){// בשביל המשולבת והטאבלט
+        else if (getPlatform() == PLATFORMS.UROVO){
+
         }
+        else if (getPlatform() == PLATFORMS.iPOS){
+
+            if (manufacturer.contains("samsung") || manufacturer.contains("sprd")
+                || Objects.equals(deviceName, "N6") || deviceName == "N6" ) {
+
+            }
+            else {
+                Utils.openDrawer(rtPrinter); // Assuming Rockchip has a drawer
+            }
+        }
+        else{
+             Utils.openDrawer(rtPrinter);
+        }
+    }
 
 
 
     public void CutPaper(){
-
         if (getPlatform() == PLATFORMS.IMIN){
             mIminPrintUtils.partialCut();
-        }else if (getPlatform() == PLATFORMS.SUNMI){
-            sunmi.aidlUtil.sendRawData(new byte [] {0x1d, 0x56, 0x42, 0x00});
+//        }else if (getPlatform() == PLATFORMS.SUNMI){
+//            sunmi.aidlUtil.sendRawData(new byte [] {0x1d, 0x56, 0x42, 0x00});
         }else{
             Utils.cutPaper(rtPrinter);
         }

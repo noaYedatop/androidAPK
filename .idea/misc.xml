@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
@@ -18,13 +17,37 @@
         <entry key="..\:/Users/User.DESKTOP-6PGG4DF.001/Desktop/Fix All APK/yedaTop-main (4)/yedaTop-main/app/src/main/res/xml/device_admin_policies.xml" value="0.2421875" />
         <entry key="..\:/Users/User.DESKTOP-6PGG4DF.001/Desktop/Fix All APK/yedaTop-main (4)/yedaTop-main/app/src/main/res/xml/device_admin_sample.xml" value="0.15364583333333334" />
         <entry key="..\:/Users/User.DESKTOP-6PGG4DF.001/Desktop/Fix All APK/yedaTop-main (4)/yedaTop-main/app/src/‏‏dangotandroid1/res/layout/activity_main_login.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/dangot1/res/layout/activity_main_login.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/dangotandroid1/res/layout/activity_main.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/liv/res/layout/activity_main.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/drawable/boder.xml" value="0.1615" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/drawable/row_background.xml" value="0.1605" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/drawable/top_border.xml" value="0.1615" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout-land/display.xml" value="0.11244121419410004" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout-sw600dp/display.xml" value="0.20498783454987834" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/activity_bitmap.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/activity_display_data.xml" value="0.17447916666666666" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/activity_function.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/activity_main_login.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/activity_qr.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/display.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/table_row.xml" value="0.1" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/layout/top_border.xml" value="0.15104166666666666" />
+        <entry key="..\:/Users/User/Desktop/android_project/androidAPK/app/src/main/res/xml/file_path.xml" value="0.11574074074074074" />
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="temurin-17" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">
     <option name="id" value="Android" />
+  </component>
+  <component name="VisualizationToolProject">
+    <option name="state">
+      <ProjectState>
+        <option name="scale" value="0.06377500495147553" />
+      </ProjectState>
+    </option>
   </component>
 </project>

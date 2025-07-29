@@ -1,14 +1,21 @@
 package com.credix.pinpaddriverwithandroidusage;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.PendingIntent;
+import android.app.Presentation;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.device.DeviceManager;
 import android.device.ScanManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -16,11 +23,19 @@ import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
+import android.graphics.Picture;
 import android.graphics.Typeface;
 
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.hardware.usb.UsbConstants;
+import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbEndpoint;
+import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.media.MediaRouter;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
@@ -28,13 +43,29 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.Editable;
+import android.text.Html;
+import android.text.InputType;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.ImageSpan;
+import android.text.style.LeadingMarginSpan;
+import android.text.style.LineHeightSpan;
 import android.util.Base64;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Pair;
+import android.util.Printer;
 import android.util.TypedValue;
+import android.view.Display;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -51,18 +82,30 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
+import android.widget.TableLayout;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 //import androidx.compose.ui.text.font.Font;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.credix.pinpad.jni.PinPadAPI;
@@ -70,6 +113,11 @@ import com.credix.pinpad.jni.PinPadResponse;
 import com.credix.pinpad.jni.PinPadSession;
 import com.credix.pinpaddriverwithandroidusage.model.EnvPaymentItem;
 import com.credix.pinpaddriverwithandroidusage.receiver.UsbDeviceReceiver;
+import com.example.nexgolibrary.data.nexgo.device_config.NexgoDeviceConfig;
+import com.example.nexgolibrary.data.nexgo.device_transaction.NexgoDeviceTransaction;
+import com.example.nexgolibrary.domain.models.api.common.ClientDetails;
+import com.example.nexgolibrary.utils.terminal.InitResCode;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 //import com.google.firebase.firestore.local.MemoryPersistence;
@@ -78,13 +126,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 //import com.google.zxing.Result;
 import com.google.zxing.*;
-import com.google.zxing.common.BitMatrix;
-import com.google.zxing.oned.Code128Writer;
+//import com.google.zxing.common.BitMatrix; 17
+//import com.google.zxing.oned.Code128Writer; 17
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.neostra.electronic.Electronic;
 import com.neostra.electronic.ElectronicCallback;
+import com.nexgo.oaf.apiv3.DeviceEngine;
+import com.nexgo.oaf.apiv3.SdkResult;
+import com.nexgo.oaf.apiv3.device.printer.AlignEnum;
 import com.rt.printerlibrary.bean.Position;
 import com.rt.printerlibrary.cmd.Cmd;
 import com.rt.printerlibrary.cmd.EscFactory;
@@ -96,15 +147,20 @@ import com.rt.printerlibrary.enumerate.CommonEnum;
 import com.rt.printerlibrary.enumerate.EscBarcodePrintOritention;
 import com.rt.printerlibrary.exception.SdkException;
 import com.rt.printerlibrary.factory.cmd.CmdFactory;
+import com.rt.printerlibrary.factory.printer.PrinterFactory;
 import com.rt.printerlibrary.setting.BarcodeSetting;
 import com.rt.printerlibrary.setting.BitmapSetting;
 import com.rt.printerlibrary.setting.CommonSetting;
 //import com.urovo.sdk.scanner.InnerScannerImpl;
 //import com.urovo.urovo.install.InstallManagerImpl;
+import com.sun.jna.Pointer;
 import com.wisepay.pinpad.Api;
 import com.urovo.sdk.*;
 //import com.urovo.sdk.system.SystemProviderImpl;
 
+import com.caysn.autoreplyprint.*;
+//import com.caysn.autoreplyprint.core.*;
+//import com.caysn.autoreplyprint.support.*;
 
 import org.eclipse.paho.mqttv5.client.*;
 import org.eclipse.paho.mqttv5.client.MqttClient;
@@ -127,23 +183,25 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidParameterException;
-import java.sql.Array;
 import java.sql.Driver;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -151,9 +209,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -164,12 +224,13 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import woyou.aidlservice.jiuiv5.IWoyouService;
+import com.credix.pinpaddriverwithandroidusage.R;
+
+//import woyou.aidlservice.jiuiv5.IWoyouService;
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-//CHECK 22222
 public class MainActivity extends BaseActivity implements View.OnClickListener , TextWatcher , ZXingScannerView.ResultHandler {
     BaseApp baseApp;
     public static final String TAG = "JS LOG";
@@ -184,14 +245,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     private FirebaseAnalytics mFirebaseAnalytics;
     public static String DOMAIN = BuildConfig.DOMAIN;
-//    public static String DOMAIN = "liv";
+//    public static String DOMAIN = "liv.yedatop";
 //      public static String DOMAIN = Bu;
 
 
     /*SCREENS*/
 //    public static final String MAIN_PATH = "https://kupa.yedatop.com";
 //    public static final String MAIN_PATH = "https://office1.yedatop.com";
-    public static final String MAIN_PATH = "https://"+DOMAIN+".yedatop.com";
+    public static final String MAIN_PATH = "https://"+DOMAIN+".com";
     //public static final String MAIN_PATH = "https://dangot.yedatop.com";
 
     private static final String[] BLOCKED_SCREENS = new String[]{
@@ -231,6 +292,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     private int running;
     private EditText input_barcode;
+    private boolean isProcessing = false; // Flag to prevent overlapping processing
+    private boolean isScanning = false;
     private ValueCallback<Uri> mUploadMessage;
     public ValueCallback<Uri[]> uploadMessage;
     public static final int REQUEST_SELECT_FILE = 100;
@@ -252,6 +315,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     private Api wisepayDll;
 
+    private MyPresentation mPresentation;
+    private List<Product> productList; // Assuming this is your list of products
+    private VideoView videoView;
+    private ScrollView scrollView;
+    private TableLayout tableLayout;
+    public String type_present_global;
+    public String username_for_path;
 
     private ElectronicCallback iMinCallback = new ElectronicCallback() {
         @Override
@@ -268,12 +338,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     private void connectImin(){
         try {
             mElectronic = new Electronic.Builder()
-                    .setDevicePath("/dev/ttyS4").setBaudrate(9600)
+                    .setDevicePath("/dev/ttyS1").setBaudrate(9600)
                     .setReceiveCallback(iMinCallback)
                     .builder();
-//            current_platform = PLATFORMS.IMIN;
-        }catch(Exception e){}
+        }catch(Exception e){
+            Log.e(TAG, "ERRRORRRRRRRRRRRR");
+        }
     }
+
     private double getFromIminWeight(){
         return iMinWeight;
     }
@@ -397,103 +469,61 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     }
 
-    private double getFromUsbWeightBip301() {
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-        if (availableDrivers.isEmpty()) {
-            Log.i("USB Connection", "No drivers available");
-            return -1;
-        }
-
-        // Open a connection to the first available driver.
-        UsbSerialDriver driver = availableDrivers.get(0);
-        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
-        if (connection == null) {
-            Log.i("USB Connection", "Connection failed");
-            // Add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            return -1;
-        }
-
+//    //BIP 30--------------------------------------------------------------------------------------------
+//    private double getFromUsbWeightBip30(){
+//
+//        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
+//        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+//        if (availableDrivers.isEmpty()) {
+//            return -1;
+//        }
+//
+//        // Open a connection to the first available driver.
+//        UsbSerialDriver driver = availableDrivers.get(0);
+//        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+//        if (connection == null) {
+//            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+//            return -1;
+//        }
+//        try{
+//            int usbSerialPort = 9600;
+//            UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+//            port.open(connection);
+//
+//            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+//
+//            port.write("w\r\n".getBytes(), 250);
+//            byte[] buf = new byte[2048];
+//            int len = port.read(buf, 1250);
+//            if (len < 3)
+//                return -1;
+//            Log.i("UDB, ",new String(buf));
+//            String  weightStr = new String(buf).replace("\r","").replace("\n","").replace("g","");
+//            double  weight  = new Double(weightStr);
+//            return  weight;
+//        }catch(Exception e){
+//            return -1;
+//        }
+//    }
+// Helper method to clear the buffer manually
+    private void clearBuffer(UsbSerialPort port) {
         try {
-            int usbSerialPort = 9600;
-            port.open(connection);
-            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-
-            port.write("w\r\n".getBytes(StandardCharsets.UTF_8), 145);
-
-            byte[] buf = new byte[2048];
-            byte[] tempBuf = new byte[256]; // Temporary buffer to read chunks
-            int totalLen = 0;
-            long startTime = System.currentTimeMillis();
-            long timeout = 2000; // Overall timeout of 2 seconds
-
-            while ((System.currentTimeMillis() - startTime) < timeout && totalLen < buf.length) {
-                int len = port.read(tempBuf, 1000); // Read into the temporary buffer
-                if (len > 0) {
-                    // Copy the data from tempBuf to buf
-                    System.arraycopy(tempBuf, 0, buf, totalLen, len);
-                    totalLen += len;
-                    Log.i("Partial Read", "Read " + len + " bytes: " + Arrays.toString(Arrays.copyOfRange(tempBuf, 0, len)));
-                    if (isDataComplete(buf, totalLen)) {
-                        break;
-                    }
-                }
-                Thread.sleep(100); // Small delay to give time for more data to arrive
+            byte[] buffer = new byte[64];
+            while (port.read(buffer, 100) > 0) {
+                // Continue reading until buffer is empty
             }
-
-            if (totalLen < 3) {
-                String str = new String(buf, 0, totalLen, StandardCharsets.UTF_8);
-                Log.i("USB Data", "Received insufficient data: " + str);
-                return -1;
-            }
-
-            // Log raw byte data
-            Log.i("Raw Data", Arrays.toString(Arrays.copyOf(buf, totalLen)));
-
-            // Log byte data as hexadecimal
-            Log.i("Hex Data", bytesToHex(buf, totalLen));
-
-            String receivedData = new String(buf, 0, totalLen, StandardCharsets.UTF_8);
-            Log.i("USB Data", "Received data: " + receivedData);
-
-            // Trim and clean the received data
-            String weightStr = receivedData.replace("\r", "").replace("\n", "").replace("g", "").trim();
-            double weight = Double.parseDouble(weightStr);
-            return weight;
-
         } catch (Exception e) {
-            Log.e("USB Exception", "Error reading weight", e);
-            return -1;
-        } finally {
-            try {
-                port.close();
-            } catch (Exception e) {
-                Log.e("USB Exception", "Error closing port", e);
-            }
+            Log.e("USB Error", "Error clearing buffer", e);
         }
     }
 
-    private String bytesToHex(byte[] bytes, int length) {
-        char[] hexArray = "0123456789ABCDEF".toCharArray();
-        char[] hexChars = new char[length * 2];
-        for (int j = 0; j < length; j++) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+    // Helper method to parse weight from different formats
+    private double parseWeight(String weightStr) throws NumberFormatException {
+        if (weightStr.startsWith(".")) {
+            weightStr = "0" + weightStr; // Add leading zero if the string starts with a dot
         }
-        return new String(hexChars);
+        return Double.parseDouble(weightStr);
     }
-
-
-    // Helper method to determine if the data is complete
-    private boolean isDataComplete(byte[] buf, int length) {
-        // Implement logic to check if the received data is complete
-        // This might depend on the specific protocol or format of the device's response
-        // For example, you might look for a specific termination character or pattern
-        // Placeholder logic
-        return new String(buf, 0, length, StandardCharsets.UTF_8).contains("\n");
-    }
-
     //BIP 30--------------------------------------------------------------------------------------------
     private double getFromUsbWeightBip30() {
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -596,151 +626,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     }
 
-    // Helper method to clear the buffer manually
-    private void clearBuffer(UsbSerialPort port) {
-        try {
-            byte[] buffer = new byte[64];
-            while (port.read(buffer, 100) > 0) {
-                // Continue reading until buffer is empty
-            }
-        } catch (Exception e) {
-            Log.e("USB Error", "Error clearing buffer", e);
-        }
-    }
-
-    // Helper method to parse weight from different formats
-    private double parseWeight(String weightStr) throws NumberFormatException {
-        if (weightStr.startsWith(".")) {
-            weightStr = "0" + weightStr; // Add leading zero if the string starts with a dot
-        }
-        return Double.parseDouble(weightStr);
-    }
-
-
-
-    private double getFromUsbWeightBip30first(){
-
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-        if (availableDrivers.isEmpty()) {
-            return -1;
-        }
-
-        // Open a connection to the first available driver.
-        UsbSerialDriver driver = availableDrivers.get(0);
-        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
-        if (connection == null) {
-            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            return -1;
-        }
-        try{
-            int usbSerialPort = 9600;
-            UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
-            port.open(connection);
-
-            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-
-            port.write("w\r\n".getBytes(), 1200);
-            byte[] buf = new byte[64];
-            Thread.sleep(500);
-            int len = port.read(buf, 2250);
-            if (len < 3)
-                return -1;
-            Log.i("UDB, ",new String(buf));
-            String  weightStr = new String(buf).replace("\r","").replace("\n","").replace("g","");
-            double  weight  = new Double(weightStr);
-            return  weight;
-        }catch(Exception e){
-            return -1;
-        }
-    }
-
-    private double getFromUsbWeightBip306(){
-
-        UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-        if (availableDrivers.isEmpty()) {
-            Log.i("11111111111111", "111");
-            return -1;
-        }
-
-        // Open a connection to the first available driver.
-        UsbSerialDriver driver = availableDrivers.get(0);
-        UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
-        if (connection == null) {
-            Log.i("222222222222222", "2222");
-            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            return -1;
-        }
-        try{
-            int usbSerialPort = 9600;
-            UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
-            port.open(connection);
-
-            port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-            BlockingQueue<Double> queue = new ArrayBlockingQueue<>(1);
-            port.write("w\r\n".getBytes(), 400);
-            readDataFromDevice(queue);
-            return queue.take(); // This will block until an element is available in the queue
-
-            /*port.write("w\r\n".getBytes(), 400);//250
-            byte[] buf = new byte[2048];
-            int len = port.read(buf, 1250);
-            //Thread.sleep(400);
-            if (len < 3) {
-                String str = new String(buf, StandardCharsets.UTF_8);
-
-                Log.i("33333333", len + "___" + str);
-                return -1;
-            }
-
-
-
-
-            String ss = new String(buf);
-            Log.i("000000: ", ss);
-            Log.i("UDB, ",ss.substring(0, 6));
-            String  weightStr = new String(buf).replace("\r","").replace("\n","").replace("g","");
-            Log.i("aendd: ", weightStr);
-            double  weight  = new Double(weightStr);
-            return  weight;*/
-        }catch(Exception e){
-            Log.i("4444444444", e.toString());
-            return -1;
-        }
-    }
-    private void readDataFromDevice(BlockingQueue<Double> queue) {
-        new Thread(() -> {
-            try {
-                byte[] buffer = new byte[16];
-                int numBytesRead = port.read(buffer, 5000);
-                while (numBytesRead > 0) {
-                    String data = new String(buffer, 0, numBytesRead, StandardCharsets.UTF_8);
-                    Log.i("USB Data", "Read " + numBytesRead + " bytes: " + data);
-
-                    // Parse the weight data
-                    String weightStr = data.replace("\r", "").replace("\n", "").replace("g", "").trim();
-                    try {
-                        double weight = Double.parseDouble(weightStr);
-                        queue.put(weight); // Put the weight in the queue
-                        return;
-                    } catch (NumberFormatException e) {
-                        Log.e("Parse Error", "Failed to parse weight: " + weightStr, e);
-                    }
-
-                    numBytesRead = port.read(buffer, 1000);
-                }
-                queue.put(-1.0); // Indicate an error
-            } catch (Exception e) {
-                try {
-                    queue.put(-1.0); // Indicate an error
-                } catch (InterruptedException interruptedException) {
-                    Log.e("USB Read Error", "Error putting error value in queue", interruptedException);
-                }
-                Log.e("USB Read Error", "Error reading from USB device", e);
-            }
-        }).start();
-    }
 //    //CS600--------------------------------------------------------------------------------------------
 //    private double getFromUsbWeightCS600(){
 //
@@ -837,31 +722,45 @@ private double getFromUsbWeightCS600(){
     }
 }
 
-    public Bitmap generateBarcode(String barcodeData, int width, int height) {
-        Map<EncodeHintType, Object> hints = new HashMap<>();
-        hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-        try {
-            Code128Writer writer = new Code128Writer();
-            BitMatrix bitMatrix = writer.encode(barcodeData, BarcodeFormat.CODE_128, width, height, hints);
-
-            int[] pixels = new int[width * height];
-            for (int y = 0; y < height; y++) {
-                int offset = y * width;
-                for (int x = 0; x < width; x++) {
-                    pixels[offset + x] = bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE;
-                }
-            }
-
-            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-            bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
-
-            return bitmap;
-
-        } catch (WriterException e) {
-            e.printStackTrace();
-            return null;
+    public double readWeightDirectlyFromUsb(Context context) {
+        double weight = com.yedatop.util.USBWeightReader.readWeight(getApplicationContext());
+        if (weight == -1) {
+            Log.e("App", "Failed to read weight.");
+        } else {
+            Log.i("App", "Weight is: " + weight);
         }
+        return weight;
     }
+
+
+
+
+
+    //    public Bitmap generateBarcode(String barcodeData, int width, int height) {
+//        Map<EncodeHintType, Object> hints = new HashMap<>();
+//        hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+//        try {
+//            Code128Writer writer = new Code128Writer();
+//            BitMatrix bitMatrix = writer.encode(barcodeData, BarcodeFormat.CODE_128, width, height, hints);
+//
+//            int[] pixels = new int[width * height];
+//            for (int y = 0; y < height; y++) {
+//                int offset = y * width;
+//                for (int x = 0; x < width; x++) {
+//                    pixels[offset + x] = bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE;
+//                }
+//            }
+//
+//            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+//            bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+//
+//            return bitmap;
+//
+//        } catch (WriterException e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+//    }
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_HOME) {
@@ -883,12 +782,12 @@ private double getFromUsbWeightCS600(){
     protected void onResume() {
         super.onResume();
         inProcess = false;
-        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "dangot1" && BuildConfig.DOMAIN != "dangot"  && BuildConfig.DOMAIN != "dangotandroid" && input_barcode != null )//DANGOT UROVO
+        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop"  && BuildConfig.DOMAIN != "dangotandroid.yedatop" && BuildConfig.DOMAIN != "android.yedatop" && input_barcode != null )//DANGOT UROVO
             input_barcode.requestFocus();
         dll = null;
         lastCreditPayTime = 0;
 
-        initScan();
+        initScan();//rrr
 /*
         mScanManager = new ScanManager();
 
@@ -1464,9 +1363,11 @@ private double getFromUsbWeightCS600(){
     private final Runnable beforeText = new Runnable() {
         @Override
         public void run() {
-            input_barcode.clearFocus();
+//            input_barcode.requestFocus();
+            // input_barcode.clearFocus();
             //webView.loadUrl("javascript:setBarcode('"+s.toString()+"')");
-            String input = input_barcode.getText().toString();
+             String input = input_barcode.getText().toString();
+
             webView.loadUrl("javascript:(function setBarcode(text){\n" +
                     "debugger;"+
                     " if (document.activeElement.id == 'search_prod') {\n" +
@@ -1480,7 +1381,7 @@ private double getFromUsbWeightCS600(){
                     "$('.keyboard_result')[0].value = text;\n" +
                     "},1);"+
                     "\n" +
-                    " }else if (document.querySelector('.text.zicuy_txt.zicuy_txt3.border2') != undefined){ \n" +
+                    " }else if (document.querySelector('.text.zicuy_txt.zicuy_txt3.border2') != undefined && $('.shovarzicuy').css('display') == 'block'){ \n" +
                     "document.querySelector('.text.zicuy_txt.zicuy_txt3.border2').value = text}\n"+
                     "else if (document.activeElement.id == '' || document.activeElement.id == ' '){ \n" +
                     "$('#search_prod')[0].value = text;\n" +
@@ -1493,42 +1394,77 @@ private double getFromUsbWeightCS600(){
             input_barcode.setText("");
             input_barcode.addTextChangedListener(MainActivity.this);
             Log.i("beforeTextChanged",input.toString());
+
         }
     };
     @Override
     public void afterTextChanged(Editable s) {
+
+        Log.d("BarcodeInput", "Input finalized: " + s.toString());
         Log.i("afterTextChanged",s.toString());
     }
     private String s;
+//    @Override
+//    public void beforeTextChangedracel(final CharSequence s, int start, int count, int after) {
+//        input_barcode.removeTextChangedListener(this);
+//        this.s = s.toString();
+//        handler.postDelayed(beforeText, 350);// for all platform
+//        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+//        imm.hideSoftInputFromWindow(getWindow().getCurrentFocus().getWindowToken(), 0);
+//    }
+
     @Override
-    public void beforeTextChanged(final CharSequence s, int start,
-                                  int count, int after) {
+    public void beforeTextChanged(final CharSequence s, int start, int count, int after) {
+        if (input_barcode == null || input_barcode.getWindowToken() == null) {
+            return; // מונע קריסה אם ה-View לא קיים
+        }
+
         //start for android with scanner rachel
-        input_barcode.removeTextChangedListener(this);
-        this.s = s.toString();
-        handler.postDelayed(beforeText, 350);
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.hideSoftInputFromWindow(getWindow().getCurrentFocus().getWindowToken(), 0);
+//        Log.d("BarcodeInput", "Input finalized: " + s.toString());
+//        Log.i("beforeTextChanged",s.toString());
+//
+//        input_barcode.removeTextChangedListener(this);
+//        this.s = s.toString();
+//        handler.postDelayed(beforeText, 350);
+//        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+//        imm.hideSoftInputFromWindow(getWindow().getCurrentFocus().getWindowToken(), 0);
+//        imm.hideSoftInputFromWindow(input_barcode.getWindowToken(), 0);
         //end for android with scanner
 
         //start for dangot and liv, not working in android with scanner rachel
-//        input_barcode.clearFocus();
-//        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        input_barcode.clearFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        View currentFocus = getWindow().getCurrentFocus();
+        if (currentFocus != null && currentFocus.getWindowToken() != null) {
+            imm.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
+        }
 //        imm.hideSoftInputFromWindow(getWindow().getCurrentFocus().getWindowToken(), 0);
-//        hideSoftKeyboard(getWindow().getCurrentFocus());
-//            input_barcode.removeTextChangedListener(this);
-//        this.s = s.toString();
-//        if (DOMAIN == "dangotandroid" || DOMAIN == "dangotandroid1") {
-//            handler.postDelayed(beforeText, 1000);
-//        }
-//        else {
-//            handler.postDelayed(beforeText, 350);//350}
-//        }
+        hideSoftKeyboard(getWindow().getCurrentFocus());
+        input_barcode.removeTextChangedListener(this);
+        this.s = s.toString();
+        if (DOMAIN == "dangotandroid" || DOMAIN == "dangotandroid1") {
+            handler.postDelayed(beforeText, 1000);
+        }
+        else {
+            handler.postDelayed(beforeText, 350);//350}
+        }
         //end for dangot and liv, not working in android with scanner
     }
 
+
+    void hideSoftKeyboardd(View view) {
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            boolean result = imm.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+            Log.d("KeyboardHide", "Hide keyboard result: " + result);
+        }
+    }
+
+
+
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
+        Log.d("BarcodeInput", "Input changed: " + s.toString());
         etBarcode.setCursorVisible(false);
         input_barcode.setCursorVisible(false);
 
@@ -1541,13 +1477,28 @@ private double getFromUsbWeightCS600(){
             mScanManager.removeReadActionListener(readerListener);
         }catch(Exception e){}
     */
-    }
+        unregisterBroadcastReceiver();
 
+        // ביטול הרישום של ה-NexgoListener
+        if (nexgoListener != null) {
+            nexgoListener.unregisterListener();
+        }
+
+    }
+    private NexgoJavaWrapper nexgoJavaWrapper;
+
+    private NexgoLibraryEventsListener nexgoListener;
+    private TextView transactionTextView, pinTextView;
+
+    private void nexgoCancelTransaction(NexgoJavaWrapper nexgoJavaWrapper) {
+        nexgoJavaWrapper.cancelTransaction();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-
+        if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop") {
+            updateLocale(this);
+        }
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         Utils.hideSystemUI(getWindow());
         super.onCreate(savedInstanceState);
@@ -1555,57 +1506,43 @@ private double getFromUsbWeightCS600(){
        // getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
                 //WindowManager.LayoutParams.FLAG_SECURE);
 
-        Bundle bundle = new Bundle();
-        bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, "MainActivity");
-        bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, "MainActivity");
-        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
-
-//        WebView.setWebContentsDebuggingEnabled(true);
-
-        Utils.printInputLanguages(this);
+         Utils.printInputLanguages(this);
 
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
         FirebaseCrashlytics.getInstance().sendUnsentReports();
 
-
         baseApp = (BaseApp) getApplication();
+if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop"){
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM, WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
 
+}
 
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-        if(BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "dangot" && BuildConfig.DOMAIN != "dangot1"   && BuildConfig.DOMAIN != "dangotandroid" && BuildConfig.DOMAIN != "dangotandroid1" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&  input_barcode != null) {//DANGOT
+        if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop"   && BuildConfig.DOMAIN != "dangotandroid.yedatop" && BuildConfig.DOMAIN != "dangotandroid1.yedatop" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&  input_barcode != null) {//DANGOT
             WebView.enableSlowWholeDocumentDraw();
             input_barcode.addTextChangedListener(this);
-
         }
-
+        else{
+           // getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE | WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED);
+        }
         //getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
-        if (DOMAIN == "dangot1" || DOMAIN == "dangotandroid" || DOMAIN == "dangotandroid1") {
+        if (DOMAIN == "dangot1.yedatop" || DOMAIN == "dangotandroid.yedatop" || DOMAIN == "dangotandroid1.yedatop") {
             setContentView(R.layout.activity_main_login);
         }
         else{
             setContentView(R.layout.activity_main);
         }
-
-          //com.urovo.sdk.api.setForceLockScreen(true);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//            startLockTask();
-//        }
-
-//        devicePolicyManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-//        adminComponent = new ComponentName(this, getClass());
-//        if (devicePolicyManager.isDeviceOwnerApp(getPackageName())) {
-//            String[] packages = {getPackageName()};
-//            devicePolicyManager.setLockTaskPackages(adminComponent, packages);
-//            startLockTask();
-//        } else {
-//
-//            Toast.makeText(this, "App is not set as device owner", Toast.LENGTH_SHORT).show();
-//        }
-
         input_barcode = findViewById(R.id.input_barcode);
         input_barcode.addTextChangedListener(this);
-
+        input_barcode.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                // אם איבד פוקוס – נחזיר אותו תוך זמן קצר
+                new Handler().postDelayed(() -> {
+                    input_barcode.requestFocus();
+                }, 100);
+            }
+        });
         barcode_scanner = (ZXingScannerView) findViewById(R.id.barcode_scanner);
 
         img = (ImageView)findViewById(R.id.img);
@@ -1614,57 +1551,436 @@ private double getFromUsbWeightCS600(){
         reloadView.setOnClickListener(this);
         receiptWebView = findViewById(R.id.webReciept);
 
-
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
 //noa
-       btnFunctions = findViewById(R.id.btnFunctions);
+
+
+        btnFunctions = findViewById(R.id.btnFunctions);
        btnPrint = findViewById(R.id.btnTestPrint);
        btnDummyInvoice = findViewById(R.id.btnDummyInvoice);
        etBarcode = findViewById(R.id.etBarcode);
-//        buildBarcodeReader();
 
         btnFunctions.setOnClickListener(this);
         btnPrint.setOnClickListener(this);
         btnDummyInvoice.setOnClickListener(this);
         findViewById(R.id.btnDummyPayment).setOnClickListener(this);
-//noa
 
-        connectImin();
-//test push and pull - git
+        connectImin();//rrr IMIN!!!!!!!!!!!
 
         initWebView();
-        if (BuildConfig.DOMAIN != "liv"  && BuildConfig.DOMAIN != "dangot1" && BuildConfig.DOMAIN != "dangot" && BuildConfig.DOMAIN != "dangotandroid" && BuildConfig.DOMAIN != "dangotandroid1") {//DANGOT
+        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot1" && BuildConfig.DOMAIN != "dangot" && BuildConfig.DOMAIN != "dangotandroid" && BuildConfig.DOMAIN != "dangotandroid1") {//DANGOT
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
             setListenerToRootView();
         }
         else{
-           // if (getPlatform() == PLATFORMS.UROVO) {
-//                getUrovoStatus();
-           // }
+            if(BuildConfig.DOMAIN == "liv.yedatop" || BuildConfig.DOMAIN == "liv1.yedatop" || BuildConfig.DOMAIN == "liv2.yedatop"){
 
+                // קריאה לפונקציה (דוגמא)
+
+                unregisterBroadcastReceiver();
+                transactionTextView = findViewById(R.id.transaction_message_text);
+                nexgoListener = new NexgoLibraryEventsListener(this);
+            }
+           // if (getPlatform() == PLATFORMS.UROVO) {
+                // getUrovoStatus();
+           // }
         }
+        checkStoragePermission();
         disableKeyboard();
         hasAllPermissions();
-        initPrinter();
-        registerPrinter(this);
+        initPrinter();//rrr
+        registerPrinter(this);//rrr
 
         Intent intent = getIntent();
         if (intent != null && intent.hasExtra("zicuy")) {
             String zicuynum = intent.getStringExtra("num_zicuy");
-
             // Assuming you determine the URL based on the received "zicuy" value
             String url = getUrlBasedOnZicuy(zicuynum);
-
             // Now load this URL in a WebView or handle it as needed
             loadUrl(url);
         }
-
     }
 
+    private final BroadcastReceiver commonReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d("NexgoDebug", "BroadcastReceiver received an event!");
+
+            if (intent != null && "common-payment-event".equals(intent.getAction())) {
+                Log.i("NexgoDebug", "Received broadcast in commonReceiver");
+
+                // לוגים על הודעות טרנזקציה
+                String message = intent.getStringExtra("transaction_message");
+                if (message != null) {
+                    Log.i("NexgoDebug", "Transaction message received: " + message);
+                    updateTransactionMessage(message);
+                } else {
+                    Log.w("NexgoDebug", "No transaction message received");
+                }
+
+//                // לוגים על אירועי PIN
+//                String pinEvent = intent.getStringExtra("pin_event");
+//                if (pinEvent != null) {
+//                    Log.i("NexgoDebug", "Pin event received: " + pinEvent);
+//                    updatePinEvent(pinEvent);
+//                } else {
+//                    Log.w("NexgoDebug", "No pin event received");
+//                }
+                } else {
+                Log.e("NexgoDebug", "Received an unexpected broadcast action");
+            }
+        }
+    };
+
+    private boolean isReceiverRegistered = false;
+
+    private void registerBroadcastReceiver() {
+        if (!isReceiverRegistered) {
+            Log.d("NexgoDebug", "Registering BroadcastReceiver...");
+            IntentFilter filter = new IntentFilter("common-payment-event");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                isReceiverRegistered = true;
+                registerReceiver(commonReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                isReceiverRegistered = true;
+                registerReceiver(commonReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            }
+            Log.d("NexgoDebug", "BroadcastReceiver registered.");
+        } else {
+            Log.d("NexgoDebug", "BroadcastReceiver already registered.");
+        }
+    }
+
+    private void unregisterBroadcastReceiver() {
+        if (transactionTextView != null) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    //ViewGroup parent = (ViewGroup) transactionTextView.getParent();
+                    //ViewGroup parent = (ViewGroup) findViewById(R.id.fullscreen_content); // מזהה את ה-Layout שמכיל את הכל
+                    LinearLayout transactionLayout = findViewById(R.id.transaction_layout);
+                    if (transactionLayout != null) {
+                        ViewGroup parent = (ViewGroup) transactionLayout.getParent();
+                        if (parent != null) {
+                            transactionLayout.setVisibility(View.GONE); // ✅ מסתיר במקום להסיר
+                            Log.d("NexgoDebug", "transaction_layout removed from parent");
+                        } else {
+                            transactionLayout.setVisibility(View.GONE); //
+                            Log.d("NexgoDebug", "transaction_layout set to GONE");
+                        }
+
+//                    if (parent != null) {
+//                        //parent.removeView(transactionTextView);
+//                        parent.removeView(transactionLayout); // ✅ מסיר את כל ה-Layout
+//
+//                        Log.d("NexgoDebug", "transactionTextView removed from parent");
+//                    } else {
+//                        transactionTextView.setVisibility(View.GONE);
+//                        Log.d("NexgoDebug", "transactionTextView set to GONE");
+//                    }
+                    }
+                }
+            });
+            Log.d("NexgoDebug", "transactionTextView set to GONE");
+        }
+
+        if (isReceiverRegistered) {
+            Log.d("NexgoDebug", "Unregistering BroadcastReceiver...");
+            unregisterReceiver(commonReceiver);
+            isReceiverRegistered = false;
+            Log.d("NexgoDebug", "BroadcastReceiver unregistered.");
+        } else {
+            Log.d("NexgoDebug", "BroadcastReceiver was not registered.");
+        }
+    }
+
+    private ViewTreeObserver.OnGlobalLayoutListener globalLayoutListener;
+
+    ClickableSpan clickableSpan = new ClickableSpan() {
+        @Override
+        public void onClick(@NonNull View widget) {
+            nexgoJavaWrapper.cancelTransaction();
+        }
+        @Override
+        public void updateDrawState(@NonNull TextPaint ds) {
+            super.updateDrawState(ds);
+            ds.setUnderlineText(true); // קו תחתי כמו קישור
+            ds.setColor(Color.RED); // צביעת הטקסט בצבע כחול כדי שיהיה ברור שזה לינק
+        }
+    };
+
+    private void updateTransactionMessage(String message) {
+        if (transactionTextView == null) {
+            Log.e("NexgoDebug", "transactionTextView is NULL!");
+            return;
+        } else {
+            Log.d("NexgoDebug", "transactionTextView visibility: " + transactionTextView.getVisibility());
+            transactionTextView.bringToFront();
+            transactionTextView.requestLayout();
+            runOnUiThread(() -> {
+                // קבלת ה-Layout, ImageView ו-TextView
+                LinearLayout transactionLayout = findViewById(R.id.transaction_layout);
+                //ImageView transactionIcon = findViewById(R.id.transaction_icon);
+                TextView transactionTextView = findViewById(R.id.transaction_message_text);
+
+                if (transactionLayout.getParent() == null) {
+                    ViewGroup parent = findViewById(R.id.fullscreen_content);
+                    parent.addView(transactionLayout);
+                }
+                String topText=message;
+            if(BuildConfig.DOMAIN == "liv2.yedatop"){
+                if ("הכנס / הצג / העבר כרטיס".equals(topText)) {
+                    topText = "הכנס / הצג / העבר";
+                }
+                else if ("כרטיס זוהה, המתן לאישור".equals(topText)) {
+                    topText = "מבצע חיוב...";
+                    EditText amountInput = findViewById(R.id.transaction_amount_input);
+                    CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
+                    FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
+
+// כשאת רוצה להציג טעינה:
+                    spinner.setIndicatorColor(
+                            ContextCompat.getColor(this, R.color.spinner_color1),
+                            ContextCompat.getColor(this, R.color.spinner_color2)
+                    );
+
+                    amountInput.setVisibility(View.GONE);
+                    spinner.setVisibility(View.VISIBLE);
+                    spinnerContainer.setVisibility(View.VISIBLE);
+                }
+                else if ("הכנס / הצג כרטיס".equals(topText)) {
+                    topText = "הכנס / הצג / העבר";
+                }
+
+                else {
+                    topText = message;
+                }
+            }
+            else{
+                 topText = message;
+            }
+                // הגדרת טקסט
+
+//                String linkText = "ביטול עסקה";
+//                SpannableString spannableString = new SpannableString(topText + "\n\n" + linkText);
+//
+//                // הוספת לינק על "ביטול עסקה"
+//                ClickableSpan clickableSpan = new ClickableSpan() {
+//                    @Override
+//                    public void onClick(@NonNull View widget) {
+//                        nexgoCancelTransaction(nexgoJavaWrapper);
+//                    }
+//
+//                    @Override
+//                    public void updateDrawState(@NonNull TextPaint ds) {
+//                        super.updateDrawState(ds);
+//                        ds.setUnderlineText(true);
+//                        ds.setColor(Color.RED);
+//                    }
+//                };
+//
+//                // הוספת clickableSpan רק על "ביטול עסקה"
+//                spannableString.setSpan(clickableSpan, topText.length(), spannableString.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                GradientDrawable drawable = new GradientDrawable();
+                drawable.setShape(GradientDrawable.RECTANGLE);
+                drawable.setCornerRadius(12f); // 32dp פינות עגולות
+                if(BuildConfig.DOMAIN == "liv2.yedatop"){
+                    transactionTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+                    drawable.setColor(Color.parseColor("#097999"));
+                    transactionTextView.setGravity(Gravity.CENTER);
+                    transactionTextView.setTextColor(Color.parseColor("#B5D1FF"));
+                    transactionTextView.setPadding(0, 100, 0, 150);
+                     if ("מבצע חיוב...".equals(topText)) {
+                         transactionTextView.setPadding(0, 10, 0, 300);
+                     }
+                }
+                else{
+                    transactionTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 40);
+                    drawable.setColor(Color.parseColor("#F44336")); // צבע אדום
+                    transactionTextView.setTextColor(Color.BLACK);
+                    transactionTextView.setPadding(0, 100, 0, 50);
+                }
 
 
+                Button transactionButton = findViewById(R.id.transaction_button);
+                transactionButton.setBackground(drawable);
+
+                // הוספת מאזין ללחיצות על הכפתור
+                transactionButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        // קריאה לפונקציה הקיימת שלך בעת לחיצה
+                        nexgoCancelTransaction(nexgoJavaWrapper);
+                    }
+                });
+
+                 transactionButton.setTranslationY(200); // להוריד פחות מלמעלה
+                if ("מבצע חיוב...".equals(topText)) {
+                    transactionButton.setVisibility(View.GONE);
+                }
+                // עדכון ה-TextView
+                transactionTextView.setText(topText);
+                transactionTextView.setMovementMethod(LinkMovementMethod.getInstance());
+                transactionTextView.setTypeface(null, Typeface.BOLD);
+                transactionTextView.setGravity(Gravity.CENTER);
+                transactionTextView.setTranslationY(-300); // מזיז את הטקסט 50 פיקסלים למעלה
+                // הצגת ה-Layout
+                transactionLayout.setVisibility(View.VISIBLE);
+            });
+        }
+    }
+
+    private void updatePinEvent(String pinEvent) {
+        Log.i("MainActivity", "Pin Event: " + pinEvent);
+        runOnUiThread(() -> pinTextView.setText("PIN: " + pinEvent));
+    }
+    private void checkStoragePermission() {
+        List<String> permissionsNeeded = new ArrayList<>();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.READ_MEDIA_IMAGES);
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.READ_MEDIA_VIDEO);
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.READ_MEDIA_AUDIO);
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+            permissionsNeeded.add(Manifest.permission.CAMERA);
+
+        if (!permissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    permissionsNeeded.toArray(new String[0]),
+                    REQUEST_PERMISSION_MULTIPLE);
+        }
+    }
+    private void checkStoragePermission2() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            List<String> permissionsNeeded = new ArrayList<>();
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.READ_MEDIA_IMAGES);
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.READ_MEDIA_VIDEO);
+            }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.READ_MEDIA_AUDIO);
+            }
+
+            // POST_NOTIFICATIONS נוספה באנדרואיד 13 (API 33)
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS);
+            }
+
+            if (!permissionsNeeded.isEmpty()) {
+                ActivityCompat.requestPermissions(this,
+                        permissionsNeeded.toArray(new String[0]),
+                        REQUEST_PERMISSION_MULTIPLE);
+            }
+
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
+                        REQUEST_PERMISSION_MULTIPLE);
+            }
+        }
+    }
+
+//    private void checkStoragePermission() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//            // אם זה Android 13 ומעלה, יש להשתמש בהרשאות החדשות
+//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED &&
+//                    ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO) != PackageManager.PERMISSION_GRANTED &&
+//                    ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+//
+//                ActivityCompat.requestPermissions(this,
+//                        new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO},
+//                        REQUEST_PERMISSION_MULTIPLE);
+//            }
+//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+//                    != PackageManager.PERMISSION_GRANTED) {
+//                ActivityCompat.requestPermissions(this,
+//                        new String[]{Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.POST_NOTIFICATIONS},
+//                        REQUEST_PERMISSION_MULTIPLE);
+//            }
+//        } else {
+//            // אם הגרסה היא לפני 13, תשתמש בהרשאות הישנות
+//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//                    != PackageManager.PERMISSION_GRANTED) {
+//                ActivityCompat.requestPermissions(this,
+//                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+//            }
+//        }
+//
+//    }
+
+    private void processBarcodeInput(String newText) {
+        if (isProcessing) {
+            return; // Skip if already processing
+        }
+
+        if (newText == null || newText.trim().isEmpty()) {
+            return; // Ignore empty or null input
+        }
+
+        isProcessing = true; // Set processing flag
+
+        // Store and clear the scanned text
+        scannedText = newText.trim();
+        input_barcode.setText("");
+
+        // Hide the soft keyboard
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (getCurrentFocus() != null) {
+            imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+        }
+
+        // Delay processing to ensure input is properly registered
+        handler.postDelayed(() -> {
+            processScannedText(scannedText);
+            isProcessing = false; // Reset processing flag
+        }, 2350);
+    }
+
+    private void processScannedText(String text) {
+        // Handle the scanned text (e.g., interact with WebView)
+        webView.loadUrl("javascript:(function setBarcode(text) { " +
+                "if (document.activeElement.id == 'search_prod') { " +
+                "$('#search_prod')[0].value = text; " +
+                "$('#search_prod')[0].click(); " +
+                "} " +
+                "else if ($('.keyboard').css('display') != 'none' || document.activeElement.id == 'search_keyboard2') { " +
+                "setTimeout(function() { " +
+                "console.log('yayy ' + text); " +
+                "$('#search_keyboard2').val(text); " +
+                "$('.keyboard_result')[0].value = text; " +
+                "}, 1); " +
+                "} " +
+                "else if (document.querySelector('.text.zicuy_txt.zicuy_txt3.border2') != undefined) { " +
+                "document.querySelector('.text.zicuy_txt.zicuy_txt3.border2').value = text; " +
+                "} " +
+                "else if (document.activeElement.id == '' || document.activeElement.id == ' ') { " +
+                "$('#search_prod')[0].value = text; " +
+                "$('#search_prod')[0].click(); " +
+                "} " +
+                "})('" + text + "')");
+    }
     private String getUrlBasedOnZicuy(String zicuy_num) {
         // Implement logic to determine the URL based on the zicuy value
         return "https://liv.yedatop.com/modules/stock/cashbox_fe/index.php?zicuy=1&num_zicuy=" + zicuy_num;  // Example URL
@@ -1696,19 +2012,33 @@ private double getFromUsbWeightCS600(){
     private final Runnable enableKeyboard = new Runnable() {
         @Override
         public void run() {
+            Log.d("DEBUG", "enableKeyboard() Runnable executed");
             MainActivity.this.enableKeyboard();
         }
     };
     public void enableKeyboard(){
+        Log.d("DEBUG", "enableKeyboard() called");
+
         if (this.webView != null) {
+            Log.d("DEBUG", "webView is NOT null");
+
             this.webView.getSettings().setSaveFormData(false);
             this.webView.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
             this.webView.setFocusable(true);
             this.webView.setFocusableInTouchMode(true);
             this.webView.requestFocus();
+            boolean focusResult = this.webView.requestFocus();
+            Log.d("DEBUG", "webView.requestFocus() result: " + focusResult);
+            Log.d("DEBUG", "webView.hasFocus(): " + this.webView.hasFocus());
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             if (imm != null) {
-                imm.showSoftInput(this.webView, InputMethodManager.SHOW_IMPLICIT);
+                String currentIme = Settings.Secure.getString(getContentResolver(), Settings.Secure.DEFAULT_INPUT_METHOD);
+                Log.d("DEBUG", "Current Input Method: " + currentIme);
+
+                Log.d("DEBUG", "InputMethodManager is NOT null");
+
+                boolean shown = imm.showSoftInput(this.webView, InputMethodManager.SHOW_IMPLICIT);
+                Log.d("DEBUG", "imm.showSoftInput() result: " + shown);
             }
         }
 //
@@ -1768,40 +2098,59 @@ private double getFromUsbWeightCS600(){
         delayedHide(100);
     }
     boolean isOpened = false;
+//    public void setListenerToRootView() {
+//            final View parentView = ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+//
+////            final View activityRootView = getWindow().getDecorView().findViewById(android.R.id.content);
+//            parentView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+//            private boolean alreadyOpen;
+//            private final int defaultKeyboardHeightDP = 100;
+//            private final int EstimatedKeyboardDP = defaultKeyboardHeightDP + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? 48 : 0);
+//            private final Rect rect = new Rect();
+//
+//
+//            @Override
+//            public void onGlobalLayout() {
+//
+//
+//                int estimatedKeyboardHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, EstimatedKeyboardDP, parentView.getResources().getDisplayMetrics());
+//                parentView.getWindowVisibleDisplayFrame(rect);
+//                int heightDiff = parentView.getRootView().getHeight() - (rect.bottom - rect.top);
+//                Log.i(TAG,"softkeyboard heightDiff "+heightDiff);
+//
+//                boolean isShown = heightDiff >= estimatedKeyboardHeight;
+//
+//                if (isShown == alreadyOpen) {
+//                    Log.i("Keyboard state", "Ignoring global layout change...");
+//                    return;
+//                }
+//                alreadyOpen = isShown;
+//
+//
+//                if (heightDiff > 5) { // 99% of the time the height diff will be due to a keyboard.
+//                   hideSoftKeyboard(null);
+//                } else if (isOpened == true) {
+//                }
+//            }
+//        });
+//    }
+
     public void setListenerToRootView() {
-            final View parentView = ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+        final View parentView = ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
 
-//            final View activityRootView = getWindow().getDecorView().findViewById(android.R.id.content);
-            parentView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            private boolean alreadyOpen;
-            private final int defaultKeyboardHeightDP = 100;
-            private final int EstimatedKeyboardDP = defaultKeyboardHeightDP + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? 48 : 0);
-            private final Rect rect = new Rect();
+        ViewCompat.setOnApplyWindowInsetsListener(parentView, (v, insets) -> {
+            Insets imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime());
+            boolean isKeyboardVisible = imeInsets.bottom > 0;
 
+            Log.i(TAG, "Keyboard visible: " + isKeyboardVisible);
 
-            @Override
-            public void onGlobalLayout() {
-
-
-                int estimatedKeyboardHeight = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, EstimatedKeyboardDP, parentView.getResources().getDisplayMetrics());
-                parentView.getWindowVisibleDisplayFrame(rect);
-                int heightDiff = parentView.getRootView().getHeight() - (rect.bottom - rect.top);
-                Log.i(TAG,"softkeyboard heightDiff "+heightDiff);
-
-                boolean isShown = heightDiff >= estimatedKeyboardHeight;
-
-                if (isShown == alreadyOpen) {
-                    Log.i("Keyboard state", "Ignoring global layout change...");
-                    return;
-                }
-                alreadyOpen = isShown;
-
-
-                if (heightDiff > 5) { // 99% of the time the height diff will be due to a keyboard.
-                   hideSoftKeyboard(null);
-                } else if (isOpened == true) {
-                }
+            if (isKeyboardVisible) {
+                hideSoftKeyboard(null); // תפעילי את מה שאת צריכה כשהמקלדת פתוחה
+            } else {
+                // כשהמקלדת סגורה
             }
+
+            return insets;
         });
     }
     private void initWebView() {
@@ -1844,17 +2193,16 @@ private double getFromUsbWeightCS600(){
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.getSettings().setDomStorageEnabled(true);
 
-        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "dangot1" && BuildConfig.DOMAIN != "dangot" && BuildConfig.DOMAIN != "dangotandroid")//DANGOT
+        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangotandroid.yedatop")//DANGOT
         {
-            webView.setOnTouchListener(new View.OnTouchListener() {
+             webView.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
 
 //                if (focusKeyboard) {
                     MainActivity.this.hideSoftKeyboard(null);
-
-
-                        input_barcode.requestFocus();
+//                    disableKeyboard();
+                    input_barcode.requestFocus();
 
                     Utils.hideSystemUI(getWindow());
 //                }
@@ -1884,8 +2232,8 @@ private double getFromUsbWeightCS600(){
             public void run() {
                 getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
 //123
-//                            webView.setFocusable(true);
-//                            webView.setFocusableInTouchMode(true);
+                            webView.setFocusable(true);
+                            webView.setFocusableInTouchMode(true);
             }
         };
         webView.setWebViewClient(new WebViewClient() {
@@ -1894,7 +2242,7 @@ private double getFromUsbWeightCS600(){
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 if (url.toLowerCase().contains("login")){
                     openLogin(url);
-                }else if (url.toLowerCase().contains("main2") || url.equalsIgnoreCase("https://"+DOMAIN+".yedatop.com/modules/stock") || url.toLowerCase().contains("basket") || url.toLowerCase().contains("listing") || url.toLowerCase().contains("rep") ||url.toLowerCase().contains("shaon")||url.toLowerCase().contains("stock/cp") ) {
+                }else if (url.toLowerCase().contains("main2") || url.equalsIgnoreCase("https://"+DOMAIN+".com/modules/stock") || url.toLowerCase().contains("basket") || url.toLowerCase().contains("listing") || url.toLowerCase().contains("rep") ||url.toLowerCase().contains("shaon")||url.toLowerCase().contains("stock/cp") ) {
 //                    openInBrowser(url);
                     openBackOffice(url);
                     return true;
@@ -2083,19 +2431,19 @@ private double getFromUsbWeightCS600(){
         });
 *///DANGOT1
 
-        if(DOMAIN == "dangot1") {
-            String sn = "0";
-
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                sn = Build.getSerial();
-            }
-
-            webView.loadUrl("https://" + DOMAIN + ".yedatop.com/modules/stock/cashbox_fe?dangot=1&sn=" + sn);
-        }
-        else {
-            webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe?dangot=1");
+//        if(DOMAIN == "dangot1") {
+//            String sn = "0";
+//
+//            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+//                sn = Build.getSerial();
+//            }
+//
+//            webView.loadUrl("https://" + DOMAIN + ".yedatop.com/modules/stock/cashbox_fe?dangot=1&sn=" + sn);
+//        }
+//        else {
+            webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1");
 //             webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe?dangot=1&runner=1");//for runner
-        }
+//        }
         //webView.loadUrl("https://dangot.yedatop.com/modules/stock/cashbox_fe?dangot=1");
 //        webView.postUrl("https://office1.yedatop.com/modules/stock/rep_tazmech_print.php?&simple=1&sDate=01/02/2021&eDate=18/02/2021",("zedmode=1&journum=104").getBytes());
     }
@@ -2150,40 +2498,39 @@ private double getFromUsbWeightCS600(){
     }
     @Override
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.reload:
-            {
-                initWebView();
-            }
-            case R.id.btnTestPrint:
-                //Utils.printTest(this, webView,rtPrinter);
-                break;
-            case R.id.btnDummyInvoice:
-                JsonObject res = Utils.dummyInvoiceData();
-
-              //  print_i_machine(res.get("invoice").toString(),res.get("barcode").toString(),1);
-                break;
-            case R.id.btnFunctions:
-             //   startActivity(new Intent(MainActivity.this, FunctionActivity.class));
-                break;
-            case R.id.btnDummyPayment:
-                // pinPadTest();
-
-                webView.loadUrl("javascript:alert(getLogoUrl())");
-                webView.loadUrl("javascript:alert(getLogoUrl)");
-
-                webView.evaluateJavascript("getLogoUrl()", value -> {
-                    Log.d(TAG, "" + value);
-                });
-                break;
-        }
+//        switch (view.getId()) {
+//            case R.id.reload:
+//            {
+//                initWebView();
+//            }
+//            case R.id.btnTestPrint:
+//                //Utils.printTest(this, webView,rtPrinter);
+//                break;
+//            case R.id.btnDummyInvoice:
+//                JsonObject res = Utils.dummyInvoiceData();
+//
+//              //  print_i_machine(res.get("invoice").toString(),res.get("barcode").toString(),1);
+//                break;
+//            case R.id.btnFunctions:
+//             //   startActivity(new Intent(MainActivity.this, FunctionActivity.class));
+//                break;
+//            case R.id.btnDummyPayment:
+//                // pinPadTest();
+//
+//                webView.loadUrl("javascript:alert(getLogoUrl())");
+//                webView.loadUrl("javascript:alert(getLogoUrl)");
+//
+//                webView.evaluateJavascript("getLogoUrl()", value -> {
+//                    Log.d(TAG, "" + value);
+//                });
+//                break;
+//        }
     }
     public static int countWordsUsingSplit(String input)
     { if (input == null || input.isEmpty()) { return 0; }
         return input.split("src=", -1).length-1;
     }
     private void load(final String html/*,String barcode*/){
-
         data.put(html);
         if (data.length() == 1){
             if (addedReceiptWebView == null){
@@ -2198,6 +2545,7 @@ private double getFromUsbWeightCS600(){
     @Override
     public void handleResult(Result result) {
         barcode_scanner.stopCamera();
+
         barcode_scanner.setVisibility(View.GONE);
         input_barcode.setText(result.getText());
     }
@@ -2210,16 +2558,28 @@ private double getFromUsbWeightCS600(){
 
         @JavascriptInterface
         public String getSerialNumber(){
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                return Build.getSerial();
-            }
+//            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+//                return Build.getSerial();
+//            }
             return "0";
         }
         @JavascriptInterface
-        public void disableKeyboard(){
-
-            handler.postDelayed(disableKeyboard,10);
+        public void disableKeyboard() {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null && webView != null) {
+                        imm.hideSoftInputFromWindow(webView.getWindowToken(), 0);
+                        webView.clearFocus(); // שחרור הפוקוס מה־WebView
+                    }
+                }
+            });
         }
+        //        public void disableKeyboard(){
+//
+//            handler.postDelayed(disableKeyboard,10);
+//        }
 //        @JavascriptInterface
 //        public void longPressDiv() {
 //            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -2232,6 +2592,8 @@ private double getFromUsbWeightCS600(){
 
         @JavascriptInterface
         public void enableKeyboard() {
+            Log.d("enableKeyboard", "Trying to show keyboard...");
+
             handler.postDelayed(enableKeyboard,5);
 //            MainActivity.this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
 //            MainActivity.this.webView.setFocusable(true);
@@ -2277,14 +2639,10 @@ private double getFromUsbWeightCS600(){
             Log.d(TAG, data);
         }
 
-
-
-
         @JavascriptInterface
-        public void open_drw(){
+        public void open_drw() throws InterruptedException {
             openDrawer();
         }
-
 
         @JavascriptInterface
         public void print_invoice3( String s){
@@ -2306,6 +2664,160 @@ private double getFromUsbWeightCS600(){
         public void print_invoice2( final String s, final String barcode, int seconds){
 
         }
+
+
+        @JavascriptInterface
+        public void present_sett(String username,String type_present){
+            username_for_path = username;
+            type_present_global =type_present;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("1")){
+                        showPicture(username_for_path);
+                    }
+                    else if(type_present_global.equals("2")) {
+                        showVideo(username_for_path);
+                    }
+                    else if(type_present_global.equals("3")) {
+                        showLogo(username_for_path);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void presentProduct(String title,double amount, String price,int index,String totalAmount){
+            double price2 = Double.parseDouble(price);
+            double totalAmount2 =Double.parseDouble(totalAmount);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        startProductPresentation(username_for_path,title, amount, price2, index,totalAmount2);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void removeProd(int index,String totalAmount){
+            double totalAmount2 =Double.parseDouble(totalAmount);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                         removeProductFromPresentation(index,totalAmount2);
+                    }
+                }
+            });
+            input_barcode.requestFocus();
+        }
+
+        @JavascriptInterface
+        public void plusCountProd(int index,double price,String totalAmount){
+            double totalAmount2 =Double.parseDouble(totalAmount);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        plusCountProdFromPresentation(index, price,totalAmount2);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void minusCountProd(int index,double price,String totalAmount){
+            double totalAmount2 =Double.parseDouble(totalAmount);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        minusCountProdFromPresentation(index, price,totalAmount2);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void changeCountProd(int index, int count, double totalprice,String totalAmount){
+            double totalAmount2 =Double.parseDouble(totalAmount);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        changeCountProdFromPresentation(index, count, totalprice,totalAmount2);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void addAnachaProd(int index, int count, String totalprice,String anacha,String totalAmount){
+            double totalprice2 = Double.parseDouble(totalprice);
+            double anacha2 = Double.parseDouble(anacha);
+            double totalAmount2 =Double.parseDouble(totalAmount);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        addAnachaProdFromPresentation(index, count, totalprice2,anacha2,totalAmount2);
+                    }
+                }
+            });
+        }
+        @JavascriptInterface
+        public void addDiscountProd(int index,String discountName,String discount,String totalAmount){
+            double discount2 = Double.parseDouble(discount);
+            double totalAmount2 =Double.parseDouble(totalAmount);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        addDiscountProdFromPresentation(index,discountName ,discount2,totalAmount2);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void addAnachaGeneral(String totalprice){
+            double totalprice2 = Double.parseDouble(totalprice);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        addAnachaGeneralFromPresentation(totalprice2);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void changeTotalPrice(double totalprice){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        changeTotalPriceProduct(totalprice);
+                    }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void stopPresentProduct(){
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if(type_present_global.equals("3")) {
+                        stopProducrpresentation();
+                    }
+                }
+            });
+        }
+
         @JavascriptInterface
         public void tara(){
             if (getPlatform() ==  PLATFORMS.IMIN) {
@@ -2364,83 +2876,204 @@ private double getFromUsbWeightCS600(){
         }
 
         @JavascriptInterface
-        public double  getWeight(){
-            if (getPlatform() ==  PLATFORMS.iPOS || getPlatform() ==  PLATFORMS.SUNMI)
-                //return  MainActivity.this.getFromUsbWeightCS600();
-                return  MainActivity.this.getFromUsbWeightBip30();
+        public double  getChooseWeight(String typeOfWeight2){
+            int typeOfWeight = Integer.parseInt(typeOfWeight2);
+            Log.e(TAG, "typeOfWeight"+typeOfWeight);
+            if (getPlatform() ==  PLATFORMS.iPOS || getPlatform() ==  PLATFORMS.SUNMI) {
+                if (typeOfWeight == 0) {
+                    Log.e(TAG, "getFromUsbWeightCS600" + typeOfWeight);
+                    return MainActivity.this.getFromUsbWeightCS600();
+                } else if (typeOfWeight == 1) {
+                    Log.e(TAG, "getFromUsbWeightBip30" + typeOfWeight);
+                    return MainActivity.this.getFromUsbWeightBip30();
+                } else if (typeOfWeight == 2) {
+                    return MainActivity.this.getFromUsbWeightNewtech();
+                }
+            }
             else if (getPlatform() == PLATFORMS.IMIN){
+                return MainActivity.this.readWeightDirectlyFromUsb(context);
+               // return MainActivity.this.getFromIminWeight();
+            }
+            return 0;
+        }
+
+        @JavascriptInterface
+        public double  getWeight(){
+            if (getPlatform() ==  PLATFORMS.iPOS || getPlatform() ==  PLATFORMS.SUNMI){
+                //  return  MainActivity.this.getFromUsbWeightCS600();
+                return  MainActivity.this.getFromUsbWeightBip30();
+            } else if (getPlatform() == PLATFORMS.IMIN){
                 return MainActivity.this.getFromIminWeight();
             }
             return 0;
         }
 
         @JavascriptInterface
-        public void unitPrice(String unitPrice){
-            UsbManager manager = (UsbManager) getSystemService
+        public void unitPrice(String unitPrice){ //for customer screen in normal android
+//            UsbManager manager = (UsbManager) getSystemService
+//                    (Context.USB_SERVICE);
+//            List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+//            if (availableDrivers.isEmpty()) {
+//                //return -1
+//            }
+//
+//            // Open a connection to the first available driver.
+//            UsbSerialDriver driver = availableDrivers.get(0);
+//            UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
+//            if (connection == null) {
+//                // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
+//               // return -1;
+//            }
+//            try {
+//                String UP = "P" + unitPrice + "\r\n";
+//                int usbSerialPort = 9600;
+//                port = driver.getPorts().get(0);
+//                port.open(connection);
+//                port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+//                port.write(UP.getBytes(), 250);//5050
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            } finally {
+//
+//            }
+        }
 
+//        @JavascriptInterface
+//        public void writelog(String journal, String text){
+//            // Check if external storage is available
+//            if (isExternalStorageWritable()) {
+//                File directory = new File(Environment.getExternalStorageDirectory(), "Logs");
+//                if (!directory.exists()) {
+//                    directory.mkdirs();
+//                }
+//                File logFile = new File(directory, journal + ".txt");
+//                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+//                String currentTime = sdf.format(new Date());
+//                try {
+//                    if (!logFile.exists()) {
+//                        logFile.createNewFile();
+//                    }
+//                    FileWriter writer = new FileWriter(logFile, true);
+//                    writer.write(currentTime + " : " + text + "\n");
+//                    writer.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
 
-
-
-
-
-
-
-
-
-
-
-
-
-                    (Context.USB_SERVICE);
-            List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-            if (availableDrivers.isEmpty()) {
-                //return -1
-            }
-
-            // Open a connection to the first available driver.
-            UsbSerialDriver driver = availableDrivers.get(0);
-            UsbDeviceConnection connection = manager.openDevice(driver.getDevice());
-            if (connection == null) {
-                // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-               // return -1;
-            }
-            try {
-                String UP = "P" + unitPrice + "\r\n";
-                int usbSerialPort = 9600;
-                port = driver.getPorts().get(0);
-                port.open(connection);
-                port.setParameters(usbSerialPort, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                port.write(UP.getBytes(), 250);//5050
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-
-            }
+        @JavascriptInterface
+        public void writeLogToConsole(String text){
+            Log.i("FROM JS: " ,text);
         }
 
         @JavascriptInterface
-        public void writelog(String journal, String text){
-            // Check if external storage is available
-            if (isExternalStorageWritable()) {
-                File directory = new File(Environment.getExternalStorageDirectory(), "Logs");
-                if (!directory.exists()) {
-                    directory.mkdirs();
-                }
-                File logFile = new File(directory, journal + ".txt");
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                String currentTime = sdf.format(new Date());
-                try {
-                    if (!logFile.exists()) {
-                        logFile.createNewFile();
-                    }
-                    FileWriter writer = new FileWriter(logFile, true);
-                    writer.write(currentTime + " : " + text + "\n");
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+        public void writelog( String journal, String text) {
+            Context context = getApplicationContext();
+
+            // יצירת תיקיית Logs באחסון הפרטי של האפליקציה
+            File directory = new File(context.getExternalFilesDir(null), "Logs");
+            if (!directory.exists()) {
+                if (!directory.mkdirs()) {
+                    Log.e("LogManager", "Failed to create directory: " + directory.getAbsolutePath());
+                    return;
+                } else {
+                    Log.i("LogManager", "Directory created successfully: " + directory.getAbsolutePath());
                 }
             }
+
+            // יצירת הקובץ
+            File logFile = new File(directory, journal + ".txt");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            String currentTime = sdf.format(new Date());
+
+            try {
+                if (!logFile.exists()) {
+                    if (logFile.createNewFile()) {
+                        Log.i("LogManager", "New log file created: " + logFile.getAbsolutePath());
+                    } else {
+                        Log.e("LogManager", "Failed to create log file: " + logFile.getAbsolutePath());
+                        return;
+                    }
+                }
+
+                // כתיבת טקסט לתוך הקובץ
+                FileWriter writer = new FileWriter(logFile, true);
+                writer.write(currentTime + " : " + text + "\n");
+                writer.close();
+
+                Log.i("LogManager", "Log written to: " + logFile.getAbsolutePath());
+            } catch (IOException e) {
+                Log.e("LogManager", "Error writing log file: ", e);
+            }
         }
+
+
+//        public void writelog( String journal, String text) {
+//
+//            Context context = getApplicationContext();
+//
+//            // יצירת תיקיית Logs באחסון הפרטי של האפליקציה
+//
+//            File directory = new File(context.getExternalFilesDir(null), "Logs");
+//            if (!directory.exists()) {
+//                if (!directory.mkdirs()) {
+//                    Log.e("LogManager", "Failed to create directory: " + directory.getAbsolutePath());
+//                    return;
+//                }
+//            }
+//
+//            // יצירת הקובץ
+//            File logFile = new File(directory, journal + ".txt");
+//            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+//            String currentTime = sdf.format(new Date());
+//
+//            try {
+//                // יצירת קובץ חדש אם הוא לא קיים
+//                if (!logFile.exists()) {
+//                    logFile.createNewFile();
+//                }
+//
+//                // כתיבה לקובץ
+//                FileWriter writer = new FileWriter(logFile, true);
+//                writer.write(currentTime + " : " + text + "\n");
+//                writer.close();
+//
+//                Log.i("LogManager", "Log written to: " + logFile.getAbsolutePath());
+//            } catch (IOException e) {
+//                Log.e("LogManager", "Error writing log file: ", e);
+//            }
+//            if (logFile.exists()) {
+//                Log.i("LogManager", "File successfully created at: " + logFile.getAbsolutePath());
+//            } else {
+//                Log.e("LogManager", "File creation failed at: " + logFile.getAbsolutePath());
+//            }
+//
+//            // פתיחת הקובץ באפליקציה חיצונית
+//            openLogFile(context, logFile);
+//        }
+
+        private void openLogFile(Context context, File logFile) {
+            if (logFile.exists()) {
+                try {
+                    Uri uri = FileProvider.getUriForFile(
+                            context,
+                            context.getPackageName() , // סמכות ללא .fileprovider
+                            logFile
+                    );
+
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "text/plain");
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    context.startActivity(intent);
+                } catch (IllegalArgumentException e) {
+                    Log.e("FileProvider", "Invalid FileProvider URI", e);
+                }
+            } else {
+                Log.e("LogManager", "File does not exist: " + logFile.getAbsolutePath());
+            }
+        }
+
 
         private boolean isExternalStorageWritable() {
             String state = Environment.getExternalStorageState();
@@ -2709,54 +3342,74 @@ private double getFromUsbWeightCS600(){
             }
         }
         private  POSPrinter printer;
-        public void initializePrinter() {
-            printer = new POSPrinter();
-            try {
-                // Replace "PrinterName" with the logical name of your printer
-                System.setProperty("jpos.config.propertiesFile", "C:\\Users\\User.DESKTOP-6PGG4DF.001\\Desktop\\Fix All APK\\yedaTop-main (4)\\yedaTop-main\\app\\src\\main\\res\\jpos.properties");
-                printer.open("Printer-3987");
-                printer.claim(1000);
-                printer.setDeviceEnabled(true);
-            } catch (JposException e) {
-                e.printStackTrace();
-                System.err.println("Error initializing printer: " + e.getMessage());
+
+
+
+        private String convertBonToHtml(String s) {
+            String[] lines = s.split(",");
+            StringBuilder html = new StringBuilder();
+            html.append("<html dir='rtl'><body style='text-align:right; font-size:18px;'>");
+            for (String line : lines) {
+                html.append("<div>").append(line).append("</div>");
             }
+            html.append("</body></html>");
+            return html.toString();
         }
+
+        private void renderHtmlToBitmap(final String html, final Consumer<Bitmap> onDone) {
+            new Handler(Looper.getMainLooper()).post(() -> {
+                WebView webView = new WebView(context);
+                webView.setVisibility(View.INVISIBLE);
+                webView.setLayoutParams(new ViewGroup.LayoutParams(384, ViewGroup.LayoutParams.WRAP_CONTENT));
+                webView.setWebViewClient(new WebViewClient() {
+                    public void onPageFinished(WebView view, String url) {
+                        view.measure(View.MeasureSpec.makeMeasureSpec(384, View.MeasureSpec.EXACTLY),
+                                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+                        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+                        Bitmap bitmap = Bitmap.createBitmap(view.getMeasuredWidth(), view.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+                        Canvas canvas = new Canvas(bitmap);
+                        view.draw(canvas);
+                        onDone.accept(bitmap);
+                    }
+                });
+                webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+            });
+        }
+
+
+
+
         //מדפסת מרוחקת ענן עם PRN
         @JavascriptInterface
-        public void print_invoice_bon(String s, final String net, String server, String userName, String password) throws JSONException {
-           try{
-              // initializePrinter();
-
-               String serverURI = server;
-               MemoryPersistence persistence = new MemoryPersistence();
-               mqttClient = new MqttClient(serverURI, net,persistence);
-              // MqttClient client = new MqttClient(serverURI, net);
-
-               MqttConnectionOptions connOpts = new MqttConnectionOptions();
-               connOpts.setCleanStart(true);
-               connOpts.setSessionExpiryInterval(0xffffffffl);
-               connOpts.setUserName(userName);
-               connOpts.setPassword(password.getBytes(StandardCharsets.UTF_8));
-               mqttClient.setCallback(mqttCallback);
-               mqttClient.connect(connOpts);
-
-               byte[] init = new byte[] {0x1B, 0x40};
-               String charsetName = "CP862";
+        public void print_invoice_bon2(String s, final String net, String server, String userName, String password) throws JSONException {
+            try{
+                String serverURI = server;
+                MemoryPersistence persistence = new MemoryPersistence();
+                mqttClient = new MqttClient(serverURI, net,persistence);
+                MqttConnectionOptions connOpts = new MqttConnectionOptions();
+                connOpts.setCleanStart(true);
+                connOpts.setSessionExpiryInterval(0xffffffffl);
+                connOpts.setUserName(userName);
+                connOpts.setPassword(password.getBytes(StandardCharsets.UTF_8));
+                mqttClient.setCallback(mqttCallback);
+                mqttClient.connect(connOpts);
+                byte[] init = new byte[] {0x1B, 0x40};
+                String charsetName = "CP862";
+                //String charsetName = "UTF-8";
                 s = s.replace("\"","");
-               s= s.replace("[","");
-               s= s.replace("]","");
-               String[] lines = s.split(",");
-               ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-               outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);
+                s= s.replace("[","");
+                s= s.replace("]","");
+//                String htmlFormatted = convertBonToHtml(s);
 
-               int x =0;
-               for (String line : lines) {
-                   byte[] text = line.getBytes(charsetName);
-                   int paddingLength = (40 - text.length) / 2; // Assuming 48 characters is the width of your printer
-                   outputStream.write(init);
-                   outputStream.write(text);
-                   if(x!=4) {
+                String[] lines = s.split(",");
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                int x =0;
+                for (String line : lines) {
+                    byte[] text = line.getBytes(charsetName);
+                    int paddingLength = (40 - text.length) / 2; // Assuming 48 characters is the width of your printer
+                    outputStream.write(init);
+                    outputStream.write(text);
+                    if(x!=4) {
                        for (int i = 0; i < paddingLength; i++) {
                            outputStream.write(0x20); // Write spaces for padding
                        }
@@ -2767,27 +3420,14 @@ private double getFromUsbWeightCS600(){
                    }
                    outputStream.write(0x0A); // Line feed after each lin
                    x++;
-               }
+
+                }
                outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);
-               byte[] printData = outputStream.toByteArray();
-//            Bitmap bitmap = drawTextToBitmap(s);
-//              byte[] printData = bitmapToBytes(bitmap);
-//
-//               byte[] printerData = convertBitmapToPrinterBytes(bitmap);
-//               sendBitmapOverMQTT(printerData, serverURI, net);
-
-//               try (FileOutputStream out = new FileOutputStream("C:\\Users\\User.DESKTOP-6PGG4DF.001\\Downloads\\image.bmp")) {
-//                   bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // Change format as necessary
-//               } catch (IOException e) {
-//                   e.printStackTrace();
-//               }
-               ///Bitmap bitmap = drawTextToBitmap(s);
-                 // byte[] printData = rasterizeBitmap(convertToMonochrome(bitmap));
-               //  byte[] printData = bitmapToMonochromeBytes(bitmap);
-
+                outputStream.write(new byte[]{0x1D, 0x56, 0x00}); // פקודת חיתוך מלא
+                byte[] printData = outputStream.toByteArray();
                String topic = net; // Replace with the topic the printer is subscribed to
                // String message = "Hello, printer123456!";
-               mqttClient.publish(topic, printData, 1, true);
+                   mqttClient.publish(topic, printData, 1, true);
 
                mqttClient.disconnect();
         } catch (Throwable tr) {
@@ -2795,49 +3435,206 @@ private double getFromUsbWeightCS600(){
         }
 
         }
-        public void initializeOPOSDevice() {
+
+        @JavascriptInterface
+        public void print_invoice_bon_new_printer(String s, final String net, String server, String userName, String password) {
             try {
-                // Initialize the JavaPOS/OPOS service manager
-                //System.setProperty("jpos.config.regPopulatorClass", "jpos.util.JposProperties");
+                // התחברות ל־MQTT
+                String serverURI = server;
+                MemoryPersistence persistence = new MemoryPersistence();
+//                mqttClient = new MqttClient(serverURI, net, persistence);
+                MqttClient localMqttClient = new MqttClient(serverURI, net, persistence);
 
-                //JposProperties jposProperties = new JposProperties();
-               // JposProperties.loadJposProperties();
-                System.setProperty("jpos.config.populatorFile", "jpos.xml");
-                System.setProperty("jpos.config.regPopulatorClass", "jpos.config.simple.xml.SimpleXmlRegPopulator");
-                System.setProperty("jpos.config.propertiesFile", "/path/to/your/jpos.properties");
-//                jpos.util.JposProperties.setPropertyValue("jpos.config.populatorFile", "jpos.xml");
-//                jpos.util.JposProperties.setPropertyValue("jpos.config.regPopulatorClass", "jpos.config.simple.xml.SimpleXmlRegPopulator");
-                POSPrinter printer = new POSPrinter();
-                // Get a reference to the printer
-                //  printer = new POSPrinter();
+                MqttConnectionOptions connOpts = new MqttConnectionOptions();
+                connOpts.setCleanStart(true);
+                connOpts.setAutomaticReconnect(false);
+                connOpts.setSessionExpiryInterval(0xffffffffL);
+                connOpts.setUserName(userName);
+                connOpts.setPassword(password.getBytes(StandardCharsets.UTF_8));
+                localMqttClient.connect(connOpts);
+                DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+                float density = metrics.density;
+// נגדיר פונט בסיסי שמתאים למדפסת 384 נקודות ברזולוציה 160dpi
+                int baseFontSize = 100; // נקודת מוצא
+                float scaleFactor = density; // או metrics.densityDpi / 160f
 
-                // Open connection to the printer
-                printer.open("Printer-3987");
+                int fontSize = (int)(baseFontSize / scaleFactor);
+                final String ss=s;
+                ((Activity) context).runOnUiThread(() -> {
+                    String _s =ss;
+                    String _s2;
+                    _s = ss.replace("max-width: 150px!important;width: 150px;margin-left: 20px;","width:120%;margin: 0; text-align: center;");
+                    final String html = "<html>" +
+                            "<head>" +
+                            "<meta name=\"viewport\" content=\"width=120%, initial-scale=1.0\">" +
+                            "<head>\n" +
+                            "\t<style>\n" +
+                            "\t\t   body{\n" +
+                            "\t\t\twidth: 120%;\n" +
+                            "\t\t}\n" +
+                            "\t\tbody > table{\n" +
+                            "font-size: 50px !important;" +
+                            "width: 120% !important;"+
+                            "\t\t}\n" +
+                            "\t</style>\n" +
+                            "</head>" +
+                            "<body>"+_s +
+                            "\n" +"</body></html>";
 
-                // Claim the printer for exclusive use
-                printer.claim(1000); // Timeout in milliseconds
+                    WebView webView = new WebView(context);
+                    webView.setVisibility(View.GONE);
+                    webView.getSettings().setJavaScriptEnabled(true);
 
-                // Enable the printer for communication
-                printer.setDeviceEnabled(true);
-            } catch (JposException e) {
+                    webView.setWebViewClient(new WebViewClient() {
+                        @Override
+                        public void onPageFinished(WebView view, String url) {
+                            view.postDelayed(() -> {
+                                try {
+                                    DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+                                    float scale = metrics.density;
+                                    int printerDotsWidth = 576; // או 576
+                                    int viewWidth = printerDotsWidth;
+
+                                    int height = 3000;
+                                    view.measure(
+                                            View.MeasureSpec.makeMeasureSpec(viewWidth, View.MeasureSpec.EXACTLY),
+                                            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.AT_MOST)
+                                    );
+                                    view.layout(0, 0, viewWidth, view.getMeasuredHeight());
+
+                                    Bitmap bitmap = Bitmap.createBitmap(viewWidth, view.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+                                    Canvas canvas = new Canvas(bitmap);
+                                    view.draw(canvas);
+
+                                    Log.i("DEBUG", "Bitmap size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+
+                                    byte[] escposData = convertBitmapToEscPos(bitmap);
+                                    MqttMessage clearMessage = new MqttMessage(new byte[0]);
+                                    clearMessage.setQos(0);
+                                    clearMessage.setRetained(true);
+                                    localMqttClient.publish(net, clearMessage);
+                                    Log.i("MQTT", "Cleared retained message on topic " + net);
+
+                                    MqttMessage message = new MqttMessage(escposData);
+                                    message.setQos(0); // QoS הכי פשוט — שליחה חד־פעמית
+                                    message.setRetained(false); // לא לשמור ב־Broker!
+                                    localMqttClient.publish(net, message);
+                                    Log.i("MQTT", "Publish sent");
+
+                                    // שליחת פקודת RESET כדי לנקות את ה־Buffer
+                                    byte[] resetPrinter = new byte[] { 0x1B, 0x40 }; // ESC @ → Reset
+                                    MqttMessage resetMessage = new MqttMessage(resetPrinter);
+                                    resetMessage.setQos(0);
+                                    resetMessage.setRetained(false);
+                                    localMqttClient.publish(net, resetMessage);
+
+//                                    localMqttClient.publish(net, new MqttMessage(escposData));
+                                    if (localMqttClient.isConnected()) {
+                                        localMqttClient.disconnect();
+                                        Log.i("MQTT", "Disconnected after publish and reset");
+                                    }
+                                    Thread.sleep(200);
+                                    ViewGroup root = ((Activity) context).findViewById(android.R.id.content);
+                                    root.removeView(webView);
+
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }, 500);
+                        }
+                    });
+
+                    ViewGroup root = ((Activity) context).findViewById(android.R.id.content);
+                    root.addView(webView);
+                    webView.getSettings().setUseWideViewPort(true);
+                    webView.getSettings().setLoadWithOverviewMode(true);
+                    webView.getSettings().setJavaScriptEnabled(true);
+                    webView.setInitialScale(100); // חשוב!
+
+                    webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
+                });
+
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        public void sendToPrinter(String data) {
-            try {
-                // Print the data
-                POSPrinter printer = new POSPrinter();
-                printer.printNormal(POSPrinterConst.PTR_S_RECEIPT, data);
-            } catch (JposException e) {
-                e.printStackTrace();
+
+
+        public Bitmap toMonochrome(Bitmap original) {
+            Bitmap bwBitmap = Bitmap.createBitmap(original.getWidth(), original.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bwBitmap);
+            Paint paint = new Paint();
+            ColorMatrix cm = new ColorMatrix();
+            cm.setSaturation(0);
+            ColorMatrixColorFilter filter = new ColorMatrixColorFilter(cm);
+            paint.setColorFilter(filter);
+            canvas.drawBitmap(original, 0, 0, paint);
+            return bwBitmap;
+        }
+
+
+        public byte[] convertBitmapToEscPos(Bitmap bitmap) {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+
+            // המר ל־1 ביט בשחור־לבן
+            Bitmap monoBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(monoBitmap);
+            Paint paint = new Paint();
+            ColorMatrix cm = new ColorMatrix();
+            cm.setSaturation(0);
+            ColorMatrixColorFilter filter = new ColorMatrixColorFilter(cm);
+            paint.setColorFilter(filter);
+            canvas.drawBitmap(bitmap, 0, 0, paint);
+
+            // המר לפורמט byte[]
+            int bytesPerRow = (width + 7) / 8;
+            byte[] imageData = new byte[bytesPerRow * height];
+            int index = 0;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x += 8) {
+                    byte b = 0;
+                    for (int i = 0; i < 8; i++) {
+                        if (x + i < width) {
+                            int pixel = monoBitmap.getPixel(x + i, y);
+                            int r = (pixel >> 16) & 0xFF;
+                            int g = (pixel >> 8) & 0xFF;
+                            int bVal = pixel & 0xFF;
+                            int gray = (r + g + bVal) / 3;
+                            if (gray < 128) {
+                                b |= (1 << (7 - i));
+                            }
+                        }
+                    }
+                    imageData[index++] = b;
+                }
             }
+
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+            // GS v 0: הדפסה של bitmap
+            output.write(0x1D); // GS
+            output.write('v');
+            output.write('0');
+            output.write(0x00); // רגיל
+
+            output.write(bytesPerRow % 256); // xL
+            output.write(bytesPerRow / 256); // xH
+            output.write(height % 256);      // yL
+            output.write(height / 256);      // yH
+
+            try {
+                output.write(imageData);
+                output.write(0x0A);output.write(0x0A);output.write(0x0A);output.write(0x0A);output.write(0x0A);
+                output.write(new byte[]{0x1D, 0x56, 0x00});
+            } catch (IOException e) {
+                e.printStackTrace(); // או Log.e(...)
+            }
+
+            return output.toByteArray();
         }
-        public void check_connect_printer(final String net) throws Exception {
-           boolean conn = isMqttClientConnected();
-           if(conn==true){
-           }
-        }
+
 
         //מדפסת מרוחקת ללא ענן, עם כבל ו IP
           //  @JavascriptInterface
@@ -2887,14 +3684,40 @@ private double getFromUsbWeightCS600(){
         @JavascriptInterface
         public void print_invoice3(final String s, final String barcode, int seconds) throws JSONException {
             running = 0;
-
             final String htmlTemp = s;
 
+            //NEXGO
+            if(getPlatform() == PLATFORMS.iPOS) {
+                String manufacturer = Build.MANUFACTURER.toLowerCase();
+                if (manufacturer.contains("sprd")) {
+                    String tmp = htmlTemp.replace("max-width:170px;width:170px;","max-width:600px; width:600px;");//15px not 35
+                    String tmp1 = tmp.replace("max-width: 150px!important;width: 650px;","max-width:600px; width:600px;");//15px not 35
+                    String cleanedHtml = tmp1.replaceAll("<img[^>]+src=\"https://liv\\.yedatop\\.com/modules/stock/cashbox_fe/inc/barcode\\.php\\?height=20&barcode=[0-9]+\"[^>]*>", "");
+                    if (barcode != "0")
+                        MainActivity.this.barcode = barcode;
+                        NexgoDeviceController nexgoDeviceController = new NexgoDeviceController(context);
+                        HtmlToBitmapConverter.convertHtmlToBitmap(context, cleanedHtml, bitmap -> {
+                        if (bitmap != null) {
+                            Log.d("Bitmap", "Bitmap נוצר בהצלחה!");
+                            // ניתן לשלוח למדפסת
+                            String deviceName = Build.MODEL;
+                            if(deviceName != "N6" && deviceName != "N6"){
+                                Log.d("PRINT", "נשלח להדפסה!");
+                                nexgoDeviceController.makeBitmapPrint(bitmap);
+                            }
+                        } else {
+                            Log.e("Bitmap", "שגיאה ביצירת ה-Bitmap");
+                        }
+                    });
+                }
+            }
+            //NEXGO END
 
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if (addedReceiptWebView == null){                        loadWebView();
+                    if (addedReceiptWebView == null){
+                        loadWebView();
                     }
                     int font_size = 27;//30;
 
@@ -2904,12 +3727,13 @@ private double getFromUsbWeightCS600(){
                     if (getPlatform() == PLATFORMS.IMIN || getPlatform() == PLATFORMS.SUNMI ){
                         _htmlTemp = _htmlTemp.replaceAll("width: 250px;","");
 
-                        _htmlTemp = htmlTemp.replace("margin-left: 5px","margin-left: 15px");
+                        _htmlTemp = htmlTemp.replace("margin-left: 5px","margin-left: 15px");//15px not 35
 //                        _htmlTemp = _htmlTemp.replace(";width: 250px;",";width: 550px;");
 
                         _htmlTemp = _htmlTemp.replaceAll("width:110px;","width: 45%;");
                         _htmlTemp = _htmlTemp.replaceAll("width:120px;","width: 45%;");
                         _htmlTemp = _htmlTemp.replaceAll("width:70px;","width: 10%;");
+                       _htmlTemp = _htmlTemp.replaceAll("max-width: 150px!important;width: 150px;","width: 250px;");
 
                         Matcher m = p.matcher(_htmlTemp);
 
@@ -2942,11 +3766,10 @@ private double getFromUsbWeightCS600(){
                             m.find() ;
                             downloadLogo(m.group().replace("src=\"","").replace("\"",""));
                         }
-
-
                     }
                     else {
-                        _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:350px;width:350px;");
+                      //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:350px;width:350px;");
+                        _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:550px;width:550px;");//for haklaot
                     }
                     if (getPlatform() == PLATFORMS.UROVO){
                         load("<html style=\"height: fit-content;\">" +
@@ -2976,10 +3799,39 @@ private double getFromUsbWeightCS600(){
                                 "</head>" +
                                 "<body>"+_htmlTemp+"</body></html>");
                     }
+                  else  if (getPlatform() == PLATFORMS.IMIN) {
+                        load("<html style=\"height: fit-content;\">" +
+                                "<head>\n" +
+                                "\t<style>\n" +
+                                "\t\t   body{\n" +
+                                "margin: unset;"+
+                                "\t\t\tpadding: 0 !important;\n" +
+                                "\t\t}\n" +
+                                "\t\tbody > table{\n" +
+                                "max-width:unset !important;"+
+                                " font-size: "+font_size+"px !important;" +
+                                "width: 97% !important;"+
+                                "margin-left: 35px !important;;"+//15
+                                "margin-right: 35px !important;;"+//15
+                                "\t\t}\n" +
+                                "\t</style>\n" +
+                                "\t<script>\n console.log('height = Running 1');" +
+                                "\t(function () {\n  console.log('height = Running2'); " +
+                                "\tsetTimeout(function(){  console.log('height = Running3'); " +
+                                "\t if (android != undefined) {\n "+
+                                "\t android.height(document.getElementsByTagName(\"table\")[0].clientHeight+300 );\n" +
+                                "\t}\n" +
+                                "},100);"+
+                                "\t})();\n" +
+                                "\t </script>\n" +
+                                "</head>" +
+                                "<body>"+_htmlTemp +
+                                "\n" +"</body></html>");
+                    }
                     else{
-                        if(DOMAIN == "dangotandroid" || DOMAIN == "dangotandroid1") {
-                            MainActivity.this.barcodeBitmap = generateBarcode(barcode, 340, 100);
-                        }
+//                        if(DOMAIN == "dangotandroid" || DOMAIN == "dangotandroid1") {
+//                            MainActivity.this.barcodeBitmap = generateBarcode(barcode, 340, 100);
+//                        }
                         load("<html style=\"height: fit-content;\">" +
                                 "<head>\n" +
                                 "\t<style>\n" +
@@ -3027,7 +3879,84 @@ private double getFromUsbWeightCS600(){
 
 
         JSONObject credixResult = new JSONObject();
-        //        OR -
+
+        private Activity activity = MainActivity.this;
+        private NexgoDeviceTransaction nexgoDeviceTransaction;
+        private NexgoLibraryEventsListener nexgoLibraryEventsListener;
+
+        @JavascriptInterface
+        public String initNexgo(String userName, String password, String terminal) {
+            try {
+                ClientDetails clientDetails = new ClientDetails(userName, password, terminal);
+                NexgoDeviceConfig nexgoDeviceConfig = new NexgoDeviceConfig(getApplicationContext());
+
+                // הרץ את הפונקציה suspend דרך runBlocking בצורה סינכרונית
+                InitResCode result = NexgoDeviceHelper.initDeviceConfigSync(nexgoDeviceConfig, clientDetails);
+
+                // מחזיר JSON string (שיהיה תקין לקריאה ב-JavaScript)
+                return "{\"returnValue\":\"" + result.name() + "\"}";
+
+            } catch (Exception e) {
+                Log.e("NexgoInit", "Error initializing Nexgo", e);
+                return "{\"returnValue\":\"INIT_FAILED\"}";
+            }
+        }
+
+        @JavascriptInterface
+        public String startNexgoPayment(String userName, String password, String terminal, String kupaNum, String amount, String currency,
+                                        String tranType, String creditTerms, String paymentsNumber, String firstPayment, String fixedPayment, String isManual, String credit,
+                                        String cardNum, String exDate, String cvv, String id){
+            Log.i("startNexgoPayment-startNexgoPayment" , "startNexgoPayment  -  HERE");
+            double amountValue = Double.parseDouble(amount);
+            String formattedAmount = String.format("%.2f", amountValue);
+            if ("liv2.yedatop".equals(BuildConfig.DOMAIN)) {
+                EditText editText = findViewById(R.id.transaction_amount_input);
+                editText.setVisibility(View.VISIBLE);
+                CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
+                spinner.setVisibility(View.GONE);
+                FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
+                spinnerContainer.setVisibility(View.GONE);
+                editText.setText("₪"+formattedAmount);
+                TextView tvDate = findViewById(R.id.tvDate);
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm   dd.MM.yyyy ", Locale.getDefault());
+                String currentDateAndTime = sdf.format(new Date());
+                tvDate.setText(currentDateAndTime);
+                TextView tvMispar = findViewById(R.id.tvMispar);
+                tvMispar.setText("מסוף:"+kupaNum);
+            }
+            registerBroadcastReceiver();
+            AtomicReference<String> resultMessage = new AtomicReference<>("");
+            nexgoLibraryEventsListener = new NexgoLibraryEventsListener(activity);
+            NexgoDeviceConfig nexgoDeviceConfig = new NexgoDeviceConfig(getApplicationContext());
+            nexgoDeviceTransaction = new NexgoDeviceTransaction(activity);
+            nexgoJavaWrapper = new NexgoJavaWrapper(nexgoDeviceConfig, nexgoDeviceTransaction);
+            CompletableFuture<Void> future = nexgoJavaWrapper.startNexgoPayment(userName, password, terminal, kupaNum, amount, currency,
+                            tranType, creditTerms, paymentsNumber, firstPayment, fixedPayment, isManual, credit, cardNum, exDate, cvv, id)
+                    .thenAccept(result -> {
+                        if(result.toString().equals("TRANSACTION_ERROR")){
+
+                        }
+                        Log.d("NexgoDebug", "Transaction result received: " + result);
+                        //nexgoLibraryEventsListener.onEventReceiveTransactionsMessages("תוצאה תשלום:" + result);
+                        unregisterBroadcastReceiver();
+                        Log.i("MainActivity", "תוצאההה: " + result);
+                        resultMessage.set(result);
+                    })
+                    .exceptionally(e -> {
+                        Log.e("NexgoDebug", "Error during Nexgo payment process", e);
+                        unregisterBroadcastReceiver(); // ביטול הרשמה גם במקרה של שגיאה
+                        resultMessage.set("שגיאה במהלך תהליך התשלום");
+                        return null;
+                    });
+            // המתן לסיום התהליך האסינכרוני
+            try {
+                future.get(); // מחכה שהתהליך יסתיים
+            } catch (Exception e) {
+                Log.e("NexgoDebug", "Error waiting for result", e);
+            }
+            return resultMessage.get();  // החזרת התוצאה שנשמרה
+        }
+
         @JavascriptInterface
         public String startPayCredit(String itra) {
             Log.e(TAG, "startPayCredit");
@@ -3331,7 +4260,7 @@ private double getFromUsbWeightCS600(){
         @JavascriptInterface
         public String getTransactionsReport(String com, String wisepayCode)
         {
-            if (BuildConfig.DOMAIN == "liv1" || BuildConfig.DOMAIN == "liv"){
+            if (BuildConfig.DOMAIN == "liv1.yedatop" || BuildConfig.DOMAIN == "liv.yedatop" || BuildConfig.DOMAIN == "liv2.yedatop"){
                     return "";
                 }else{
                 apiDll = new Api();
@@ -3462,6 +4391,7 @@ private double getFromUsbWeightCS600(){
                 if (pay_first < 1)
                 {
                     firstPaymentAmount = amt - Math.round(amt / pay_num) * ((int)(pay_num) - 1);
+                    firstPaymentAmount = Math.round(firstPaymentAmount * 100.0) / 100.0;//rachel יום חמישי
                     paymentAmount = Math.round(amt / pay_num);
                 }
                 else
@@ -3471,6 +4401,15 @@ private double getFromUsbWeightCS600(){
                     firstPaymentAmount = amt - paymentAmount * (pay_num - 1);
                 }
                 numberOfPayments -= 1;
+                double newAmnt = paymentAmount * numberOfPayments + firstPaymentAmount;
+//                if(newAmnt != amt){
+//                    double absAmnt = Math.abs(newAmnt-amt);
+//                     if(newAmnt < amt) {
+//                         firstPaymentAmount += absAmnt;
+//                     } else if(newAmnt > amt){
+//                         firstPaymentAmount -= absAmnt;
+//                     }
+//                }
             }
             if (ashray_f_credit > 0)
             {
@@ -3616,27 +4555,60 @@ private double getFromUsbWeightCS600(){
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         if (requestCode == REQUEST_PERMISSION_MULTIPLE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "Permission was granted!");
-            } else {
-                Log.e(TAG, "Permission was not granted!");
-                Toast.makeText(MainActivity.this, "Permission must be granted", Toast.LENGTH_SHORT).show();
-                MainActivity.this.finish();
+            boolean allGranted = true;
+
+            for (int i = 0; i < permissions.length; i++) {
+                String permission = permissions[i];
+                int result = grantResults[i];
+
+                if (result == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("Permissions", "✔ Granted: " + permission);
+                } else {
+                    allGranted = false;
+                    Log.e("Permissions", "✖ Denied: " + permission);
+
+                    // בדיקה אם המשתמש סימן "Don't Ask Again"
+                    if (!ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+                        Log.w("Permissions", "⚠️ Don't Ask Again was selected for: " + permission);
+                        //showSettingsDialog();
+                    }
+                }
+            }
+
+            if (!allGranted) {
+                Toast.makeText(this, "חלק מההרשאות סורבו. חלק מהפונקציות לא יעבדו.", Toast.LENGTH_LONG).show();
             }
         }
     }
+
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+//        Log.d("DEBUG", "API Level: " + Build.VERSION.SDK_INT);
+//
+//        if (requestCode == REQUEST_PERMISSION_MULTIPLE) {
+//            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                Log.d(TAG, "Permission was granted!");
+//            } else {
+//                Log.e(TAG, "Permission was not granted!");
+//                Toast.makeText(MainActivity.this, "Permission must be granted", Toast.LENGTH_SHORT).show();
+//                MainActivity.this.finish();
+//            }
+//        }
+//    }
     /* NOT MINE */
-    private IWoyouService woyouService;
+    //private IWoyouService woyouService;
     private ServiceConnection connService = new ServiceConnection() {
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            woyouService = null;
+             //woyouService = null;
         }
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            woyouService = IWoyouService.Stub.asInterface(service);
+            //woyouService = IWoyouService.Stub.asInterface(service);
         }
     };
     private static final boolean AUTO_HIDE = true;

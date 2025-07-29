@@ -9,10 +9,12 @@ import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.os.Build;
 import android.util.Log;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
@@ -23,17 +25,38 @@ import android.widget.FrameLayout;
 
 import com.credix.pinpaddriverwithandroidusage.BackOfficeActivity;
 import com.credix.pinpaddriverwithandroidusage.BaseActivity;
+import com.credix.pinpaddriverwithandroidusage.HtmlToBitmapConverter;
 import com.credix.pinpaddriverwithandroidusage.MainActivity;
+import com.credix.pinpaddriverwithandroidusage.NexgoDeviceController;
 import com.credix.pinpaddriverwithandroidusage.R;
 import com.credix.pinpaddriverwithandroidusage.Utils;
 import com.rt.printerlibrary.cmd.Cmd;
 import com.rt.printerlibrary.cmd.EscFactory;
 import com.rt.printerlibrary.factory.cmd.CmdFactory;
 
-import org.json.JSONException;
+import org.eclipse.paho.mqttv5.client.*;
+import org.eclipse.paho.mqttv5.client.MqttClient;
+import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
+import org.eclipse.paho.mqttv5.client.persist.MemoryPersistence;
 
+import org.eclipse.paho.mqttv5.common.MqttException;
+import org.eclipse.paho.mqttv5.common.MqttMessage;
+import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class BackOfficeInterface {
     static final String TAG = "BackOfficeInterface";
@@ -292,6 +315,100 @@ public class BackOfficeInterface {
 //        url="";
         print(url);
     }
+    private MqttClient mqttClient;
+    private MqttCallback mqttCallback = new MqttCallback() {
+        @Override
+        public void disconnected(MqttDisconnectResponse disconnectResponse) {
+            String msgstr = "disconnected " + disconnectResponse.toString();
+            System.out.println(msgstr);
+        }
+
+        @Override
+        public void mqttErrorOccurred(MqttException exception) {
+            String msgstr = "mqttErrorOccurred " + exception.toString();
+            System.out.println("from CALLBACK: " + msgstr);
+        }
+
+        @Override
+        public void messageArrived(String topic, MqttMessage message) throws Exception {
+            //The original data is stored in the file, the amount of data is too large
+            String msgstr = topic + "\n" + message.toString() + "\n";
+            System.out.println("Message published");
+            //  handleRecvMessage(message.toString());
+        }
+
+        @Override
+        public void deliveryComplete(IMqttToken token) {
+            String msgstr = "deliveryComplete " + token.toString();
+            System.out.println(msgstr);
+        }
+
+        @Override
+        public void connectComplete(boolean reconnect, String serverURI) {
+            String msgstr = "connectComplete " + serverURI;
+            System.out.println(msgstr);
+        }
+
+        @Override
+        public void authPacketArrived(int reasonCode, MqttProperties properties) {
+            String msgstr = "authPacketArrived " + properties;
+            System.out.println(msgstr);
+        }
+    };
+    @JavascriptInterface
+    public void print_invoice_bon(String s, final String net, String server, String userName, String password) throws JSONException {
+        try{
+            // initializePrinter();
+            String serverURI = server;
+            MemoryPersistence persistence = new MemoryPersistence();
+            mqttClient = new MqttClient(serverURI, net,persistence);
+            MqttConnectionOptions connOpts = new MqttConnectionOptions();
+            connOpts.setCleanStart(true);
+            connOpts.setSessionExpiryInterval(0xffffffffl);
+            connOpts.setUserName(userName);
+            connOpts.setPassword(password.getBytes(StandardCharsets.UTF_8));
+            mqttClient.setCallback(mqttCallback);
+            mqttClient.connect(connOpts);
+            byte[] init = new byte[] {0x1B, 0x40};
+            String charsetName = "CP862";
+            s = s.replace("\"","");
+            s= s.replace("[","");
+            s= s.replace("]","");
+            String[] lines = s.split(",");
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);
+            int x =0;
+            for (String line : lines) {
+                byte[] text = line.getBytes(charsetName);
+                int paddingLength = (40 - text.length) / 2; // Assuming 48 characters is the width of your printer
+                outputStream.write(init);
+                outputStream.write(text);
+                if(x!=4) {
+                    for (int i = 0; i < paddingLength; i++) {
+                        outputStream.write(0x20); // Write spaces for padding
+                    }
+                }if(x==4) {
+                    for (int i = 0; i < 20; i++) {
+                        outputStream.write(0x20); // Write spaces for padding
+                    }
+                }
+                outputStream.write(0x0A); // Line feed after each lin
+                x++;
+            }
+            outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);outputStream.write(0x0A); outputStream.write(0x0A);outputStream.write(0x0A);
+            byte[] printData = outputStream.toByteArray();
+            String topic = net; // Replace with the topic the printer is subscribed to
+            // String message = "Hello, printer123456!";
+            mqttClient.publish(topic, printData, 1, true);
+
+            mqttClient.disconnect();
+        } catch (Throwable tr) {
+            tr.printStackTrace();
+        }
+
+    }
+
+
     /**
      *
      * Print HTML Invoice
@@ -301,8 +418,45 @@ public class BackOfficeInterface {
      * @throws JSONException
      */
     int running = 0;
+
     @JavascriptInterface
-    public void print_invoice3(final String s) throws JSONException {
+    public void pairPinpadSynqpay(String ip, String serial) throws IOException {
+        OkHttpClient client = new OkHttpClient().newBuilder()
+                .build();
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(mediaType, "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"pair\",\n    \"id\": \"23fda5af-2c2e-4467-9a46-73b79e0b6bee\",\n    \"params\": {\n        \"serialNumber\": \""+serial+"\"\n    }\n}");
+        Request request = new Request.Builder()
+                .url("http://"+ip+":8000/synqpay")
+                .method("POST", body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("apiKey", "")
+                .build();
+        Response response = client.newCall(request).execute();
+        Log.i("COOOOD", response.toString());
+    }
+
+
+    @JavascriptInterface
+    public String authPinpadSynqpay(String ip, String code) throws IOException, JSONException {
+        OkHttpClient client = new OkHttpClient().newBuilder()
+                .build();
+        MediaType mediaType = MediaType.parse("application/json");
+        RequestBody body = RequestBody.create(mediaType, "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"authenticate\",\n    \"id\": \"1234\",\n    \"params\": {\n        \"otp\": \""+code+"\"\n    }\n}");
+        Request request = new Request.Builder()
+                .url("http://"+ip+":8000/synqpay")
+                .method("POST", body)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("apiKey", "")
+                .build();
+        Response response = client.newCall(request).execute();
+        JSONObject result = new JSONObject(response.body().string());
+        result = result.optJSONObject("result");
+        String apiKey = result.optString("apiKey");
+        Log.i("APIIIIII ", apiKey);
+        return apiKey;
+    }
+        @JavascriptInterface
+    public void  print_invoice3(final String s) throws JSONException {
         print(MainActivity.MAIN_PATH+s);
 
         //     print_i_machine(s,barcode,seconds);
@@ -384,6 +538,7 @@ public class BackOfficeInterface {
                                         View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
 
             addedReceiptWebView.layout(0, 0, addedReceiptWebView.getMeasuredWidth(), addedReceiptWebView.getMeasuredHeight());
+
 //            Bitmap bitmap;
 //            if(((BaseActivity)context).getPlatform() != BaseActivity.PLATFORMS.UROVO){
 //                 bitmap = Bitmap.createBitmap(addedReceiptWebView.getWidth(), addedReceiptWebView.getHeight()+150, Bitmap.Config.ARGB_8888);
@@ -412,9 +567,9 @@ public class BackOfficeInterface {
 
                 ((BaseActivity)context).clearPrinterResources();
 
-            } else if ( ((BaseActivity)context).getPlatform() == BaseActivity.PLATFORMS.SUNMI) {
-                ((BaseActivity)context).sunmi.sendImageToPrinter(bitmap);
-                ((BaseActivity)context).clearPrinterResources();
+//            } else if ( ((BaseActivity)context).getPlatform() == BaseActivity.PLATFORMS.SUNMI) {
+//                ((BaseActivity)context).sunmi.sendImageToPrinter(bitmap);
+//                ((BaseActivity)context).clearPrinterResources();
             }
             else if ( ((BaseActivity)context).getPlatform() == BaseActivity.PLATFORMS.UROVO) {
                 ((BaseActivity)context).mPrinterManager.drawBitmap(bitmap, 0, 0);
@@ -423,6 +578,27 @@ public class BackOfficeInterface {
                 ((BaseActivity)context).clearPrinterResources();
                 ((BackOfficeActivity) context).progress.setVisibility(View.GONE);
             }
+            else if(((BaseActivity)context).getPlatform() == BaseActivity.PLATFORMS.iPOS) {
+                String manufacturer = Build.MANUFACTURER.toLowerCase();
+                if (manufacturer.contains("sprd")) {
+                    if (bitmap != null) {
+                        Log.d("Bitmap", "Bitmap מוכן להדפסה!");
+                        String deviceName = Build.MODEL;
+                        if (!deviceName.equals("N6")) {  // שים לב להשוואה נכונה
+                            Log.d("PRINT", "נשלח להדפסה!");
+                            NexgoDeviceController nexgoDeviceController = new NexgoDeviceController(context);
+                            nexgoDeviceController.makeBitmapPrint(bitmap);
+                            new android.os.Handler().postDelayed(() -> {
+                                ((BackOfficeActivity) context).progress.setVisibility(View.GONE);
+                            }, 4000); // 4000 = 4 שניות (אפשר גם 3000 או מה שמתאים בפועל)
+
+                        }
+                    } else {
+                        Log.e("Bitmap", "ה-Bitmap שהועבר היה null");
+                    }
+                }
+            }
+
             else{
 
                 CmdFactory cmdFactory = new EscFactory();
