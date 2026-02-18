@@ -21,6 +21,8 @@ import com.nexgo.oaf.apiv3.SdkResult;
 import com.nexgo.oaf.apiv3.device.printer.AlignEnum;
 import com.nexgo.oaf.apiv3.device.printer.GrayLevelEnum;
 import com.nexgo.oaf.apiv3.device.printer.Printer;
+import com.nexgo.oaf.apiv3.device.usbserial.UsbSerial;
+
 import java.util.concurrent.Executors;
 
 public class NexgoDeviceController implements DeviceController {
@@ -224,7 +226,50 @@ public class NexgoDeviceController implements DeviceController {
     @NonNull
     @Override
     public String getDeviceSerial() {
-        return "";
+        try {
+            Object info = deviceEngine.getDeviceInfo();
+            if (info == null) return null;
+
+            // נסה מתודות נפוצות בלי לדעת שם מדויק
+            String[] candidates = {
+                    "getSerialNo", "getSerialNumber", "getSN", "getSn", "getDeviceSn",
+                    "getTerminalSn", "getTerminalSerial", "getDeviceSerial", "getSNumber"
+            };
+
+            for (String mName : candidates) {
+                try {
+                    java.lang.reflect.Method m = info.getClass().getMethod(mName);
+                    Object v = m.invoke(info);
+                    if (v != null) {
+                        String s = String.valueOf(v).trim();
+                        if (!s.isEmpty() && !"null".equalsIgnoreCase(s) && !"unknown".equalsIgnoreCase(s)) {
+                            return s;
+                        }
+                    }
+                } catch (Throwable ignore) {}
+            }
+
+            // אם לא מצא – תדפיסי את כל המתודות כדי שנדע מה לקרוא
+            for (java.lang.reflect.Method m : info.getClass().getMethods()) {
+                if (m.getParameterTypes().length == 0 && m.getReturnType() == String.class) {
+                    try {
+                        Object v = m.invoke(info);
+                        if (v != null) {
+                            String s = String.valueOf(v).trim();
+                            if (!s.isEmpty()) {
+                                android.util.Log.d("NEXGO_DEVICEINFO", m.getName() + " -> " + s);
+                            }
+                        }
+                    } catch (Throwable ignore) {}
+                }
+            }
+
+            return null;
+        } catch (Throwable t) {
+            android.util.Log.e("NEXGO_DEVICEINFO", "failed", t);
+            return null;
+        }
+
     }
 
     @Override

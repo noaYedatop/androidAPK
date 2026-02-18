@@ -53,6 +53,7 @@ public class BaseApp extends Application {
         is_i_machine = true;
         instance = this;
         setLocale("he");
+        //AppLogger.init(this);
     }
     public void setLocale(String languageCode) {
         Locale locale = new Locale(languageCode);

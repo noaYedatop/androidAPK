@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.yedatop.maytal",
+  "applicationId": "com.yedatop.mayafood",
   "variantName": "mayafoodRelease",
   "elements": [
     {
@@ -16,8 +16,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 66,
-      "versionName": "v3.0.11",
+      "versionCode": 77,
+      "versionName": "v3.0.21",
       "outputFile": "app-mayafood-armeabi-v7a-release.apk"
     },
     {
@@ -29,8 +29,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 66,
-      "versionName": "v3.0.11",
+      "versionCode": 77,
+      "versionName": "v3.0.21",
       "outputFile": "app-mayafood-arm64-v8a-release.apk"
     }
   ],

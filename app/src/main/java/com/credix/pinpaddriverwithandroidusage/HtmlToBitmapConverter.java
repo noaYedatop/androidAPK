@@ -22,6 +22,8 @@ public class HtmlToBitmapConverter {
         handler.post(() -> {
             WebView webView = new WebView(context);
             webView.getSettings().setJavaScriptEnabled(true);
+            //webView.addJavascriptInterface(new WebAppBridge(), "android");
+
             webView.getSettings().setLoadWithOverviewMode(true);
             webView.getSettings().setUseWideViewPort(true);
             webView.setInitialScale(200); // משנה קנה מידה

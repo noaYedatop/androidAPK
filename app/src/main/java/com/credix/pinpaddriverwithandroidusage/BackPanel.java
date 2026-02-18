@@ -3,6 +3,7 @@ package com.credix.pinpaddriverwithandroidusage;
 import android.app.Presentation;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Display;
 import android.webkit.WebView;
 import android.widget.ListView;
@@ -10,7 +11,16 @@ import android.widget.RelativeLayout;
 import android.widget.TableLayout;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 public class BackPanel extends Presentation {
 
@@ -253,5 +263,103 @@ public class BackPanel extends Presentation {
         if (LastView != null)
             layout.removeView(LastView);
         LastView = null;
+    }
+
+    public static final class AppLogger {
+
+        public enum Level { DEBUG, INFO, WARN, ERROR }
+
+        private static final String TAG = "AppLogger";
+        private static final String FILE_NAME = "app_logs.txt";
+        private static final int MAX_BUFFER_LINES = 2000;
+
+        private static final ArrayDeque<String> memoryBuffer = new ArrayDeque<>();
+        private static volatile Context appContext;
+
+        private AppLogger() {}
+
+        public static void init(Context context) {
+            appContext = context.getApplicationContext();
+            log(Level.INFO, "Logger initialized", null, null);
+        }
+
+        public static void d(String message) { log(Level.DEBUG, message, null, null); }
+        public static void i(String message) { log(Level.INFO, message, null, null); }
+        public static void w(String message) { log(Level.WARN, message, null, null); }
+        public static void e(String message, Throwable t) { log(Level.ERROR, message, null, t); }
+
+        public static void log(Level level, String message, Object data, Throwable throwable) {
+            String line = buildLine(level, message, data, throwable);
+
+            // 1) Logcat
+            switch (level) {
+                case DEBUG: Log.d(TAG, line); break;
+                case INFO:  Log.i(TAG, line); break;
+                case WARN:  Log.w(TAG, line); break;
+                case ERROR: Log.e(TAG, line); break;
+            }
+
+            // 2) Memory buffer (for the viewer screen)
+            synchronized (memoryBuffer) {
+                memoryBuffer.addLast(line);
+                while (memoryBuffer.size() > MAX_BUFFER_LINES) {
+                    memoryBuffer.removeFirst();
+                }
+            }
+
+            // 3) Persist to file
+            Context ctx = appContext;
+            if (ctx == null) return;
+
+            File f = new File(ctx.getFilesDir(), FILE_NAME);
+            FileWriter fw = null;
+            try {
+                fw = new FileWriter(f, true);
+                fw.append(line).append('\n');
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to write log file", e);
+            } finally {
+                if (fw != null) {
+                    try { fw.close(); } catch (IOException ignored) {}
+                }
+            }
+        }
+
+        public static List<String> getLogsSnapshot() {
+            synchronized (memoryBuffer) {
+                return new ArrayList<>(memoryBuffer);
+            }
+        }
+
+        public static void clearLogs() {
+            synchronized (memoryBuffer) {
+                memoryBuffer.clear();
+            }
+            Context ctx = appContext;
+            if (ctx == null) return;
+            File f = new File(ctx.getFilesDir(), FILE_NAME);
+            FileWriter fw = null;
+            try {
+                fw = new FileWriter(f, false);
+                fw.write("");
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to clear log file", e);
+            } finally {
+                if (fw != null) {
+                    try { fw.close(); } catch (IOException ignored) {}
+                }
+            }
+        }
+
+        public static File getLogFile(Context context) {
+            return new File(context.getFilesDir(), FILE_NAME);
+        }
+
+        private static String buildLine(Level level, String message, Object data, Throwable throwable) {
+            String ts = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
+            String dataPart = (data != null) ? (" | data=" + String.valueOf(data)) : "";
+            String errPart = (throwable != null) ? (" | ex=" + throwable.getClass().getSimpleName() + ": " + throwable.getMessage()) : "";
+            return ts + " [" + level.name() + "] " + message + dataPart + errPart;
+        }
     }
 }

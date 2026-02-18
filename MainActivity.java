@@ -137,6 +137,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     private FirebaseAnalytics mFirebaseAnalytics;
     public static String DOMAIN = BuildConfig.DOMAIN;
+    public static String SN = Build.getSerial(); // דורש הרשאות, ובד"כ לא יעבוד באפליקציה רגילה
+Log.d("SERIAL", serial);
+    ;
+
 //    public static String DOMAIN = "liv";
 //      public static String DOMAIN = Bu;
 
@@ -230,7 +234,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         return iMinWeight;
     }
 
-
+    private String getSN(){
+        String serial = Build.getSerial(); // דורש הרשאות, ובד"כ לא יעבוד באפליקציה רגילה
+        Log.d("SERIAL", serial);
+        return serial;
+    }
     private double getFromUsbWeight(){
 
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -948,7 +956,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        if(BuildConfig.DOMAIN != "liv" &&  BuildConfig.DOMAIN != "liv2" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if(BuildConfig.DOMAIN != "liv" &&  BuildConfig.DOMAIN != "peleliv2" && BuildConfig.DOMAIN != "liv2" &&  BuildConfig.DOMAIN != "mayafood" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             WebView.enableSlowWholeDocumentDraw();
         }
 
@@ -992,7 +1000,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
 
         initWebView();
-        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "liv2" ) {
+        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "peleliv2" && BuildConfig.DOMAIN != "liv2" && BuildConfig.DOMAIN != "mayafod" ) {
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
             setListenerToRootView();
         }
@@ -1129,6 +1137,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             WebView.enableSlowWholeDocumentDraw();
         }
+        String SN = String serial = Build.getSerial(); // דורש הרשאות, ובד"כ לא יעבוד באפליקציה רגילה
 
         webView.addJavascriptInterface(jsInterface, "android");
         webView.addJavascriptInterface(jsInterface, "android2");
@@ -1150,7 +1159,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.getSettings().setDomStorageEnabled(true);
 
-        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "liv2")
+        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "peleliv2" && BuildConfig.DOMAIN != "liv2" && BuildConfig.DOMAIN != "mayafod")
         {
             webView.setOnTouchListener(new View.OnTouchListener() {
                 @Override
@@ -1374,7 +1383,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         });
 */
 
-        webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1");
+        webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1&sn="+SN);
         // webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe");
 //        webView.postUrl("https://office1.yedatop.com/modules/stock/rep_tazmech_print.php?&simple=1&sDate=01/02/2021&eDate=18/02/2021",("zedmode=1&journum=104").getBytes());
     }
@@ -2071,7 +2080,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         @JavascriptInterface
         public String getTransactionsReport(String com, String wisepayCode)
         {
-            if (BuildConfig.DOMAIN == "liv" || BuildConfig.DOMAIN == "liv2"){
+            if (BuildConfig.DOMAIN == "liv" || BuildConfig.DOMAIN == "peleliv2" || BuildConfig.DOMAIN == "liv2" || BuildConfig.DOMAIN == "mayafood"){
                     return "";
                 }else{
                 apiDll = new Api();

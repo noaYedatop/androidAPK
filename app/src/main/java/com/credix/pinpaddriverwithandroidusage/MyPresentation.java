@@ -140,19 +140,45 @@ public class MyPresentation extends Presentation {
     }
 
     public void displayLogo(String name){
+        Log.e("DISPLAY_LOGO", "displayLogo called. name=" + name);
+
         videoView.setVisibility(View.GONE);
         imageView.setVisibility(View.GONE);
         String imagePath1 = "https://"+BuildConfig.DOMAIN+".com/officefiles/"+name+"/screen/logo1.png";
         String imagePath2 = "https://"+BuildConfig.DOMAIN+".com/officefiles/"+name+"/screen/logo2.png";
+        Log.d("IMG_URL", imagePath2);
         logo_first = findViewById(R.id.logo_first);
         logo_first.setVisibility(View.VISIBLE);
         Picasso.get().invalidate(imagePath1);
-        Picasso.get().load(imagePath1).networkPolicy(NetworkPolicy.NO_CACHE).memoryPolicy(MemoryPolicy.NO_CACHE).into(logo_first);
+      //  Picasso.get().load(imagePath1).networkPolicy(NetworkPolicy.NO_CACHE).memoryPolicy(MemoryPolicy.NO_CACHE).into(logo_first);
+        Picasso.get()
+                .load(imagePath1)
+                .networkPolicy(NetworkPolicy.NO_CACHE)
+                .memoryPolicy(MemoryPolicy.NO_CACHE)
+                .into(logo_first, new com.squareup.picasso.Callback() {
+                    @Override public void onSuccess() {
+                        Log.d("PICASSO", "Loaded OK");
+                    }
+                    @Override public void onError(Exception e) {
+                        Log.e("PICASSO", "Load failed: " + imagePath1, e);
+                    }
+                });
         logo_secend = findViewById(R.id.logo_secend);
         logo_secend.setVisibility(View.VISIBLE);
         Picasso.get().invalidate(imagePath2);
-        Picasso.get().load(imagePath2).networkPolicy(NetworkPolicy.NO_CACHE).memoryPolicy(MemoryPolicy.NO_CACHE).into(logo_secend);
-
+       // Picasso.get().load(imagePath2).networkPolicy(NetworkPolicy.NO_CACHE).memoryPolicy(MemoryPolicy.NO_CACHE).into(logo_secend);
+        Picasso.get()
+                .load(imagePath2)
+                .networkPolicy(NetworkPolicy.NO_CACHE)
+                .memoryPolicy(MemoryPolicy.NO_CACHE)
+                .into(logo_secend, new com.squareup.picasso.Callback() {
+                    @Override public void onSuccess() {
+                        Log.d("PICASSO", "Loaded OK");
+                    }
+                    @Override public void onError(Exception e) {
+                        Log.e("PICASSO", "Load failed: " + imagePath2, e);
+                    }
+                });
     }
 
     public void updateProducts(List<Product> updatedProducts,double totalAmount) {

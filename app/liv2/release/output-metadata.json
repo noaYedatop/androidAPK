@@ -16,8 +16,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 66,
-      "versionName": "v3.0.11",
+      "versionCode": 76,
+      "versionName": "v3.0.21",
       "outputFile": "app-liv2-armeabi-v7a-release.apk"
     },
     {
@@ -29,8 +29,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 66,
-      "versionName": "v3.0.11",
+      "versionCode": 76,
+      "versionName": "v3.0.21",
       "outputFile": "app-liv2-arm64-v8a-release.apk"
     }
   ],

@@ -7,6 +7,9 @@ import android.app.PendingIntent;
 import android.app.Presentation;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.os.Parcel;
+import android.os.Bundle;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -44,6 +47,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.Editable;
@@ -107,6 +111,9 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import android.provider.Settings;
+import android.content.SharedPreferences;
+import android.content.Context;
 
 import com.credix.pinpad.jni.PinPadAPI;
 import com.credix.pinpad.jni.PinPadResponse;
@@ -128,6 +135,8 @@ import com.google.gson.JsonSyntaxException;
 import com.google.zxing.*;
 //import com.google.zxing.common.BitMatrix; 17
 //import com.google.zxing.oned.Code128Writer; 17
+import com.hoho.android.usbserial.driver.Ch34xSerialDriver;
+import com.hoho.android.usbserial.driver.ProbeTable;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -208,6 +217,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -323,6 +333,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     public String type_present_global;
     public String username_for_path;
 
+
+
     private ElectronicCallback iMinCallback = new ElectronicCallback() {
         @Override
         public void electronicStatus(String weight, String status) {
@@ -351,8 +363,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     }
 
 //ניוטק איילון -------------------------------------------------------------------------------------
-    private double getFromUsbWeightNewtech(){
-
+    private double getFromUsbWeightNewtech() {
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
         List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
         if (availableDrivers.isEmpty()) {
@@ -383,7 +394,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             Log.i("UDB",new String(buf));
             String  weightStr = new String(buf);//.replace("\r","").replace("\n","").replace("g","");
             //if(len>=5){
-                String s = weightStr.substring(0,7);
+            String s = weightStr.substring(0,7);
             //}
             double  weight  = new Double(s);
             return  weight;
@@ -391,6 +402,307 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             return -1;
         }
     }
+
+    private static final Object SCALE_LOCK = new Object();
+    private static UsbDeviceConnection sConn;
+    private static UsbSerialPort sPort;
+    private static Double sLastStable;    // משקל יציב אחרון
+    private static long sLastStableAt;    // מתי נמדד
+    private static final long FRESH_MS = 1200; // חלון "טריות"
+
+    private double getFromUsbWeightScangle11() {
+        // 0) אם יש ערך טרי—נחזיר מייד בלי USB
+        synchronized (SCALE_LOCK) {
+            if (sLastStable != null && (SystemClock.elapsedRealtime() - sLastStableAt) <= FRESH_MS) {
+                return sLastStable;
+            }
+        }
+
+        Context app = getApplicationContext();
+        UsbManager manager = (UsbManager) app.getSystemService(Context.USB_SERVICE);
+        if (manager == null) return -1;
+
+        // 1) מאתרים דרייבר – קודם CH340 (1A86:7523), אחרת drivers.get(0)
+        List<UsbSerialDriver> drivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+        if (drivers.isEmpty()) return -1;
+
+        UsbSerialDriver driver = null;
+        for (UsbSerialDriver d : drivers) {
+            UsbDevice dev = d.getDevice();
+            if (dev.getVendorId() == 0x1A86 && dev.getProductId() == 0x7523) { // CH340
+                driver = d; break;
+            }
+        }
+        if (driver == null) driver = drivers.get(0);
+
+        if (!manager.hasPermission(driver.getDevice())) return -1;
+
+        // 2) פותחים פעם אחת ושומרים סטטית (למהירות בקריאות הבאות)
+        synchronized (SCALE_LOCK) {
+            try {
+                if (sPort == null) {
+                    sConn = manager.openDevice(driver.getDevice());
+                    if (sConn == null) return -1;
+
+                    sPort = driver.getPorts().get(0);
+                    sPort.open(sConn);
+                    try {
+                        sPort.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+                    } catch (Exception e) {
+                        // חלק מהמאזניים ב-7E1
+                        sPort.setParameters(9600, 7, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_EVEN);
+                    }
+                    sPort.setDTR(true);
+                    sPort.setRTS(true);
+
+                    // Flush קצר מאוד (≈60–80ms)
+                    byte[] tmp = new byte[256];
+                    long flushUntil = SystemClock.elapsedRealtime() + 80;
+                    while (SystemClock.elapsedRealtime() < flushUntil) {
+                        int n = sPort.read(tmp, 20);
+                        if (n <= 0) break;
+                    }
+                }
+            } catch (Exception openErr) {
+                Log.e("UDB", "USB open/config failed", openErr);
+                safeCloseScale(); // נסגור סטטית אם נכשל
+                return -1;
+            }
+        }
+
+        // 3) קריאה מהירה עם יציבות קלה + עדכון קאש
+        final int REQUIRED_CONSECUTIVE = 2;  // במקום 3 (מהיר יותר)
+        final double TOL = 1.0;              // טולרנס 1g
+        final int WARMUP_LINES = 1;          // זורקים שורה אחת
+        final long MIN_GAP_MS = 40;          // מרווח מינ' בין דגימות
+        final long DEADLINE_MS = 1200;       // דדליין קצר
+
+        int warmupLeft = WARMUP_LINES;
+        double prevVal = Double.NaN;
+        int stableCount = 0;
+        Double lastWeight = null;
+
+        byte[] buf = new byte[256];
+        StringBuilder lineBuf = new StringBuilder();
+        long deadline = SystemClock.elapsedRealtime() + DEADLINE_MS;
+
+        // (אופציונלי) שליחת פקודה – השאירי אם צריך; אם לא, אפשר לבטל כדי להרוויח ~80ms
+        try {
+            sPort.write("w\r\n".getBytes(StandardCharsets.US_ASCII), 150);
+            try { Thread.sleep(60); } catch (InterruptedException ignored) {}
+        } catch (Exception ignored) {}
+
+        while (SystemClock.elapsedRealtime() < deadline) {
+            int len;
+            try {
+                synchronized (SCALE_LOCK) {
+                    if (sPort == null) return -1;
+                    len = sPort.read(buf, 120);
+                }
+            } catch (Exception readErr) {
+                Log.w("UDB", "USB read error, closing", readErr);
+                safeCloseScale();
+                return -1;
+            }
+
+            if (len <= 0) continue;
+
+            String chunk = new String(buf, 0, len, StandardCharsets.US_ASCII);
+            lineBuf.append(chunk);
+
+            // צריכת שורות אחת-אחת
+            int nl;
+            while ((nl = indexOfNewline(lineBuf)) >= 0) {
+                String line = consumeLine(lineBuf, nl);
+                if (line.isEmpty()) continue;
+
+                boolean stableFlag = line.startsWith("ST") || line.contains(" ST ");
+                String num = line.replaceAll("[^0-9.\\-]", "");
+                if (num.isEmpty() || ".".equals(num) || "-".equals(num)) continue;
+
+                double w;
+                try { w = Double.parseDouble(num); } catch (NumberFormatException e) { continue; }
+                lastWeight = w;
+
+                if (warmupLeft > 0) { warmupLeft--; continue; }
+
+                if (stableFlag) {
+                    // יציב מיידית לפי הדגל
+                    synchronized (SCALE_LOCK) { sLastStable = w; sLastStableAt = SystemClock.elapsedRealtime(); }
+                    return w;
+                }
+
+                long now = SystemClock.elapsedRealtime();
+                // gap מינימלי לדגימה
+                // (אם רוצים, אפשר לשמור lastTs ולהתחשב; בפועל 2 דגימות קרובות עובדות לרוב)
+                if (Double.isNaN(prevVal) || Math.abs(w - prevVal) > TOL) {
+                    prevVal = w; stableCount = 1;
+                } else {
+                    prevVal = w; stableCount++;
+                }
+
+                if (stableCount >= REQUIRED_CONSECUTIVE) {
+                    synchronized (SCALE_LOCK) { sLastStable = w; sLastStableAt = now; }
+                    return w;
+                }
+            }
+        }
+
+        // דדליין עבר: נחזיר מה שיש (אחרון), ונעדכן קאש אם נראה סביר
+        if (lastWeight != null) {
+            synchronized (SCALE_LOCK) { sLastStable = lastWeight; sLastStableAt = SystemClock.elapsedRealtime(); }
+            return lastWeight;
+        }
+        return -1;
+    }
+
+    // ---- שתי עזרות זעירות בתוך אותה מחלקה (לא קלאס חדש) ----
+    private static int indexOfNewline(CharSequence sb) {
+        for (int i = 0; i < sb.length(); i++) {
+            char c = sb.charAt(i);
+            if (c == '\r' || c == '\n') return i;
+        }
+        return -1;
+    }
+
+    private static String consumeLine(StringBuilder sb, int nl) {
+        String line = sb.substring(0, nl).trim();
+        int c = nl;
+        while (c < sb.length() && (sb.charAt(c) == '\r' || sb.charAt(c) == '\n')) c++;
+        sb.delete(0, c);
+        return line;
+    }
+
+    private static void safeCloseScale() {
+        synchronized (SCALE_LOCK) {
+            try { if (sPort != null) sPort.close(); } catch (Exception ignore) {}
+            try { if (sConn != null) sConn.close(); } catch (Exception ignore) {}
+            sPort = null; sConn = null;
+        }
+    }
+
+    private double getFromUsbWeightScangle() {
+        Context app = getApplicationContext(); // או requireContext().getApplicationContext() בפרגמנט
+        UsbManager manager = (UsbManager) app.getSystemService(Context.USB_SERVICE);
+        List<UsbSerialDriver> drivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
+        if (drivers.isEmpty()) return -1;
+        UsbManager m = (UsbManager) getApplicationContext().getSystemService(Context.USB_SERVICE);
+        for (UsbDevice d : m.getDeviceList().values()) {
+            Log.i("USB", "VID=" + d.getVendorId() + " PID=" + d.getProductId()
+                    + " devClass=" + d.getDeviceClass());
+            for (int i=0;i<d.getInterfaceCount();i++) {
+                Log.i("USB", " ifc " + i + " class=" + d.getInterface(i).getInterfaceClass());
+            }
+        }
+
+        UsbSerialDriver driver = drivers.get(0);
+
+// אם אין הרשאה – נבקש עכשיו ונחכה עד 1.2ש׳ (בלי רסיבר קבוע באפליקציה)
+        if (!manager.hasPermission(driver.getDevice())) {
+            final String ACTION_USB_PERMISSION = "com.yedatop.maytal.USB_PERMISSION";
+            PendingIntent pi = PendingIntent.getBroadcast(
+                    app, 0, new Intent(ACTION_USB_PERMISSION),
+                    Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0
+            );
+
+            final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(1);
+            BroadcastReceiver br = new BroadcastReceiver() {
+                @Override public void onReceive(Context c, Intent intent) {
+                    if (ACTION_USB_PERMISSION.equals(intent.getAction())) {
+                        latch.countDown();
+                    }
+                }
+            };
+            app.registerReceiver(br, new IntentFilter(ACTION_USB_PERMISSION),Context.RECEIVER_NOT_EXPORTED);
+            try {
+                manager.requestPermission(driver.getDevice(), pi);
+                // מחכים עד 1.2 שנ׳ לאישור/דחייה מהמערכת
+                latch.await(1200, java.util.concurrent.TimeUnit.MILLISECONDS);
+            } catch (Exception ignore) {
+            } finally {
+                try { app.unregisterReceiver(br); } catch (Exception ignore) {}
+            }
+
+            // בדיקה שוב אחרי ההמתנה
+            if (!manager.hasPermission(driver.getDevice())) {
+                Log.w("USB", "אין הרשאה אחרי בקשה – חוזרים -1");
+                return -1;
+            }
+        }
+
+// מכאן – פתיחה בטוחה: תופסים גם SecurityException אם המערכת עוד לא עדכנה מצב
+        UsbDeviceConnection connection;
+        try {
+            connection = manager.openDevice(driver.getDevice());
+        } catch (SecurityException se) {
+            Log.e("UsbManager", "SecurityException ב-openDevice: אין הרשאה פעילה", se);
+            return -1;
+        }
+        if (connection == null) return -1;
+
+
+        UsbSerialPort port = null;
+        try {
+            port = driver.getPorts().get(0);
+            port.open(connection);
+            port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+            port.setDTR(true);
+            port.setRTS(true);
+
+            // ניקוי הבאפר
+            byte[] flush = new byte[256];
+            while (port.read(flush, 50) > 0) {
+                Log.i("UDB", "Flush old data...");
+            }
+
+            // שליחת פקודה
+            String command = "w\r\n";
+            port.write(command.getBytes(StandardCharsets.US_ASCII), 200);
+
+            // זמן תגובה
+            Thread.sleep(150);
+
+            byte[] buf = new byte[256];
+            long deadline = SystemClock.elapsedRealtime() + 1200; // עד 1.2 שניות
+            StringBuilder acc = new StringBuilder();
+
+            double lastWeight = -1;
+
+            while (SystemClock.elapsedRealtime() < deadline) {
+                int len = port.read(buf, 150);
+                if (len > 0) {
+                    String raw = new String(buf, 0, len, StandardCharsets.US_ASCII);
+                    Log.i("UDB", "RAW chunk: [" + raw + "]");
+                    acc.append(raw);
+
+                    // מפצלים לשורות
+                    String[] lines = acc.toString().split("[\\r\\n]+");
+                    for (String line : lines) {
+                        line = line.trim();
+                        if (line.isEmpty()) continue;
+                        try {
+                            double w = Double.parseDouble(line.replaceAll("[^0-9.\\-]", ""));
+                            lastWeight = w;
+                            Log.i("UDB", "Parsed weight: " + w);
+                            return w; // מחזירים ברגע שיש משקל תקין
+                        } catch (NumberFormatException ignore) {}
+                    }
+                }
+            }
+
+            return lastWeight;
+
+        } catch (Exception e) {
+            Log.e("UDB", "Exception during USB read", e);
+            return -1;
+        } finally {
+            try { if (port != null) port.close(); } catch (Exception ignore) {}
+            try { connection.close(); } catch (Exception ignore) {
+                Log.e("UDB", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAש", ignore);
+            }
+        }
+    }
+
     private SerialPort mSerialPort = null;
     private OutputStream mOutputStream = null;
     private SerialPort openSerialPort(File device, int baudrate, int stopBits, int dataBits, int parity, boolean flowCon){
@@ -782,7 +1094,7 @@ private double getFromUsbWeightCS600(){
     protected void onResume() {
         super.onResume();
         inProcess = false;
-        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop"  && BuildConfig.DOMAIN != "dangotandroid.yedatop" && BuildConfig.DOMAIN != "android.yedatop" && input_barcode != null )//DANGOT UROVO
+        if (!"liv.yedatop".equals(BuildConfig.DOMAIN) && !"peleliv2.yedatop".equals(BuildConfig.DOMAIN) && !"liv2.yedatop".equals(BuildConfig.DOMAIN) && !"mayafood.yedatop".equals(BuildConfig.DOMAIN) && !"dangot1.yedatop".equals(BuildConfig.DOMAIN) && !"dangot.yedatop".equals(BuildConfig.DOMAIN)  && !"dangotandroid.yedatop".equals(BuildConfig.DOMAIN)&& !"android.yedatop".equals(BuildConfig.DOMAIN) && input_barcode != null )//DANGOT UROVO
             input_barcode.requestFocus();
         dll = null;
         lastCreditPayTime = 0;
@@ -815,13 +1127,35 @@ private double getFromUsbWeightCS600(){
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
 
+    private final SimpleDateFormat dateFormat =
+            new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private final SimpleDateFormat timeFormat =
+            new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+
+    @JavascriptInterface
+    public void writelog(String tag, String message) {
+        try {
+            File logsDir = new File(getFilesDir(), "logs");
+            if (!logsDir.exists()) {
+                logsDir.mkdirs();
+            }
+
+            String today = dateFormat.format(new Date());
+            File logFile = new File(logsDir, "log_" + today + ".txt");
+
+            String time = timeFormat.format(new Date());
+            String line = "[" + time + "][" + tag + "] " + message + "\n";
+
+            FileWriter writer = new FileWriter(logFile, true);
+            writer.append(line);
+            writer.close();
+        } catch (Exception ignored) {}
+    }
+
+
     /*
-
     UROVO function
-
-
      */
-
     @JavascriptInterface
     public void repotUrovo(){
 
@@ -1431,7 +1765,7 @@ private double getFromUsbWeightCS600(){
 //        imm.hideSoftInputFromWindow(input_barcode.getWindowToken(), 0);
         //end for android with scanner
 
-        //start for dangot and liv, not working in android with scanner rachel
+        //start for dangot and liv APOLO, not working in android with scanner rachel
         input_barcode.clearFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         View currentFocus = getWindow().getCurrentFocus();
@@ -1494,9 +1828,11 @@ private double getFromUsbWeightCS600(){
         nexgoJavaWrapper.cancelTransaction();
     }
 
+    private NexgoDeviceController nexgoDeviceController;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop") {
+        if(!"liv.yedatop".equals(BuildConfig.DOMAIN) && !"liv1.yedatop".equals(BuildConfig.DOMAIN)&& !"mayafood.yedatop".equals(BuildConfig.DOMAIN) && !"peleliv2.yedatop".equals(BuildConfig.DOMAIN) && !"liv2.yedatop".equals(BuildConfig.DOMAIN)) {
             updateLocale(this);
         }
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -1507,19 +1843,24 @@ private double getFromUsbWeightCS600(){
                 //WindowManager.LayoutParams.FLAG_SECURE);
 
          Utils.printInputLanguages(this);
+         //for debug in chrome
 
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
         FirebaseCrashlytics.getInstance().sendUnsentReports();
 
         baseApp = (BaseApp) getApplication();
-if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop"){
+if(!"liv.yedatop".equals(BuildConfig.DOMAIN) && !"liv1.yedatop".equals(BuildConfig.DOMAIN) && !"mayafood.yedatop".equals(BuildConfig.DOMAIN) && !"peleliv2.yedatop".equals(BuildConfig.DOMAIN) && !"liv2.yedatop".equals(BuildConfig.DOMAIN) && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop"){
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM, WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
 
 }
+        getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED
+                        | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        );
 
-        if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop"   && BuildConfig.DOMAIN != "dangotandroid.yedatop" && BuildConfig.DOMAIN != "dangotandroid1.yedatop" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&  input_barcode != null) {//DANGOT
+        if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "peleliv2.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "mayafood.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop"   && BuildConfig.DOMAIN != "dangotandroid.yedatop" && BuildConfig.DOMAIN != "dangotandroid1.yedatop" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&  input_barcode != null) {//DANGOT
             WebView.enableSlowWholeDocumentDraw();
             input_barcode.addTextChangedListener(this);
         }
@@ -1544,6 +1885,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
             }
         });
         barcode_scanner = (ZXingScannerView) findViewById(R.id.barcode_scanner);
+      //  nexgoDeviceController = new NexgoDeviceController(this); // יש לך context פה for pelecard
 
         img = (ImageView)findViewById(R.id.img);
         reloadView = findViewById(R.id.reload);
@@ -1570,12 +1912,12 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
         connectImin();//rrr IMIN!!!!!!!!!!!
 
         initWebView();
-        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot1" && BuildConfig.DOMAIN != "dangot" && BuildConfig.DOMAIN != "dangotandroid" && BuildConfig.DOMAIN != "dangotandroid1") {//DANGOT
+        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" && BuildConfig.DOMAIN != "peleliv2.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "mayafood.yedatop" && BuildConfig.DOMAIN != "dangot1" && BuildConfig.DOMAIN != "dangot" && BuildConfig.DOMAIN != "dangotandroid" && BuildConfig.DOMAIN != "dangotandroid1") {//DANGOT
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
             setListenerToRootView();
         }
         else{
-            if(BuildConfig.DOMAIN == "liv.yedatop" || BuildConfig.DOMAIN == "liv1.yedatop" || BuildConfig.DOMAIN == "liv2.yedatop"){
+            if(BuildConfig.DOMAIN == "liv.yedatop" || BuildConfig.DOMAIN == "liv1.yedatop" || BuildConfig.DOMAIN == "peleliv2.yedatop" || BuildConfig.DOMAIN == "liv2.yedatop" || BuildConfig.DOMAIN == "mayafood.yedatop"){
 
                 // קריאה לפונקציה (דוגמא)
 
@@ -1610,7 +1952,18 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
 
             if (intent != null && "common-payment-event".equals(intent.getAction())) {
                 Log.i("NexgoDebug", "Received broadcast in commonReceiver");
+                Bundle extras = intent.getExtras();
+                if (extras == null || extras.isEmpty()) {
+                    Log.w("NexgoDebug", "No extras in intent");
+                    return;
+                }
 
+                // הדפסה של כל המפתחות והערכים
+                for (String key : extras.keySet()) {
+                    Object value = extras.get(key);
+                    String type = (value != null) ? value.getClass().getName() : "null";
+                    Log.d("NexgoDebug", "Extra key: " + key + " | type: " + type + " | value: " + String.valueOf(value));
+                }
                 // לוגים על הודעות טרנזקציה
                 String message = intent.getStringExtra("transaction_message");
                 if (message != null) {
@@ -1645,7 +1998,9 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                 registerReceiver(commonReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
             } else {
                 isReceiverRegistered = true;
-                registerReceiver(commonReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    registerReceiver(commonReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+                }
             }
             Log.d("NexgoDebug", "BroadcastReceiver registered.");
         } else {
@@ -1730,28 +2085,26 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                     parent.addView(transactionLayout);
                 }
                 String topText=message;
-            if(BuildConfig.DOMAIN == "liv2.yedatop"){
+            if(BuildConfig.DOMAIN == "liv2.yedatop" || BuildConfig.DOMAIN == "peleliv2.yedatop"){
                 if ("הכנס / הצג / העבר כרטיס".equals(topText)) {
-                    topText = "הכנס / הצג / העבר";
+                    topText = "הכנס / הצמד / העבר";
                 }
                 else if ("כרטיס זוהה, המתן לאישור".equals(topText)) {
                     topText = "מבצע חיוב...";
-                    EditText amountInput = findViewById(R.id.transaction_amount_input);
-                    CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
-                    FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
+//                    EditText amountInput = findViewById(R.id.transaction_amount_input);
+//                    CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
+//                    FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
 
-// כשאת רוצה להציג טעינה:
-                    spinner.setIndicatorColor(
-                            ContextCompat.getColor(this, R.color.spinner_color1),
-                            ContextCompat.getColor(this, R.color.spinner_color2)
-                    );
+ //כשאת רוצה להציג טעינה:
+//                    spinner.setIndicatorColor(
+//                            ContextCompat.getColor(this, R.color.spinner_color1),
+//                            ContextCompat.getColor(this, R.color.spinner_color2)
+//                    );
 
-                    amountInput.setVisibility(View.GONE);
-                    spinner.setVisibility(View.VISIBLE);
-                    spinnerContainer.setVisibility(View.VISIBLE);
+
                 }
                 else if ("הכנס / הצג כרטיס".equals(topText)) {
-                    topText = "הכנס / הצג / העבר";
+                    topText = "הכנס / הצמד / העבר";
                 }
 
                 else {
@@ -1787,7 +2140,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                 GradientDrawable drawable = new GradientDrawable();
                 drawable.setShape(GradientDrawable.RECTANGLE);
                 drawable.setCornerRadius(12f); // 32dp פינות עגולות
-                if(BuildConfig.DOMAIN == "liv2.yedatop"){
+                if(BuildConfig.DOMAIN == "liv2.yedatop" || BuildConfig.DOMAIN == "peleliv2.yedatop"){
                     transactionTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
                     drawable.setColor(Color.parseColor("#097999"));
                     transactionTextView.setGravity(Gravity.CENTER);
@@ -2178,6 +2531,8 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
 
 
         webView.getSettings().setJavaScriptEnabled(true);
+        //webView.addJavascriptInterface(new WebAppBridge(), "android");
+
         // webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
         webView.setHapticFeedbackEnabled(false);
@@ -2193,7 +2548,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.getSettings().setDomStorageEnabled(true);
 
-        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangotandroid.yedatop")//DANGOT
+        if (BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "peleliv2.yedatop" && BuildConfig.DOMAIN != "liv2.yedatop" && BuildConfig.DOMAIN != "mayafood.yedatop" && BuildConfig.DOMAIN != "dangot1.yedatop" && BuildConfig.DOMAIN != "dangot.yedatop" && BuildConfig.DOMAIN != "dangotandroid.yedatop")//DANGOT
         {
              webView.setOnTouchListener(new View.OnTouchListener() {
                 @Override
@@ -2441,12 +2796,33 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
 //            webView.loadUrl("https://" + DOMAIN + ".yedatop.com/modules/stock/cashbox_fe?dangot=1&sn=" + sn);
 //        }
 //        else {
-            webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1");
+
+
+//for pelecard
+//        String sn = nexgoDeviceController.getDeviceSerial();
+//        Log.d("NEXGO_SN", "sn=" + sn);
+//
+//        webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1&sn="+sn);
+//
+//        Log.d("NEXGO_SN", "url=" + "https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1&sn="+Uri.encode(sn));
 //             webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe?dangot=1&runner=1");//for runner
 //        }
+     //end for pelecard
+
+
         //webView.loadUrl("https://dangot.yedatop.com/modules/stock/cashbox_fe?dangot=1");
 //        webView.postUrl("https://office1.yedatop.com/modules/stock/rep_tazmech_print.php?&simple=1&sDate=01/02/2021&eDate=18/02/2021",("zedmode=1&journum=104").getBytes());
     }
+
+    private String getSystemProperty(String key) {
+        try {
+            Class<?> sp = Class.forName("android.os.SystemProperties");
+            return (String) sp.getMethod("get", String.class).invoke(null, key);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     private void injectCSS() {
         try {
             InputStream inputStream = getAssets().open("custom.css");
@@ -2891,6 +3267,10 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                 }
             }
             else if (getPlatform() == PLATFORMS.IMIN){
+                String manufacturer = Build.MANUFACTURER.toLowerCase();
+                if (manufacturer.contains("rockchip")) {
+                    return MainActivity.this.getFromUsbWeightScangle();
+                }
                 return MainActivity.this.readWeightDirectlyFromUsb(context);
                // return MainActivity.this.getFromIminWeight();
             }
@@ -3440,10 +3820,18 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
         public void print_invoice_bon_new_printer(String s, final String net, String server, String userName, String password) {
             try {
                 // התחברות ל־MQTT
+                SharedPreferences prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE);
+                String deviceId = prefs.getString("device_id", null);
+                if (deviceId == null || deviceId.isEmpty()) {
+                    deviceId = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
+                    if (deviceId == null || deviceId.isEmpty()) deviceId = java.util.UUID.randomUUID().toString();
+                    prefs.edit().putString("device_id", deviceId).apply();
+                }
+                String clientId = net + "-" + deviceId;
                 String serverURI = server;
                 MemoryPersistence persistence = new MemoryPersistence();
 //                mqttClient = new MqttClient(serverURI, net, persistence);
-                MqttClient localMqttClient = new MqttClient(serverURI, net, persistence);
+                MqttClient localMqttClient = new MqttClient(serverURI, clientId, persistence);
 
                 MqttConnectionOptions connOpts = new MqttConnectionOptions();
                 connOpts.setCleanStart(true);
@@ -3484,6 +3872,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                     WebView webView = new WebView(context);
                     webView.setVisibility(View.GONE);
                     webView.getSettings().setJavaScriptEnabled(true);
+                    //webView.addJavascriptInterface(new WebAppBridge(), "android");
 
                     webView.setWebViewClient(new WebViewClient() {
                         @Override
@@ -3495,7 +3884,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                                     int printerDotsWidth = 576; // או 576
                                     int viewWidth = printerDotsWidth;
 
-                                    int height = 3000;
+                                    int height = 30000;
                                     view.measure(
                                             View.MeasureSpec.makeMeasureSpec(viewWidth, View.MeasureSpec.EXACTLY),
                                             View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.AT_MOST)
@@ -3509,31 +3898,31 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                                     Log.i("DEBUG", "Bitmap size: " + bitmap.getWidth() + "x" + bitmap.getHeight());
 
                                     byte[] escposData = convertBitmapToEscPos(bitmap);
-                                    MqttMessage clearMessage = new MqttMessage(new byte[0]);
-                                    clearMessage.setQos(0);
-                                    clearMessage.setRetained(true);
-                                    localMqttClient.publish(net, clearMessage);
-                                    Log.i("MQTT", "Cleared retained message on topic " + net);
+//                                    MqttMessage clearMessage = new MqttMessage(new byte[0]);
+//                                    clearMessage.setQos(0);
+//                                    clearMessage.setRetained(true);
+//                                    localMqttClient.publish(net, clearMessage);
+//                                    Log.i("MQTT", "Cleared retained message on topic " + net);
 
                                     MqttMessage message = new MqttMessage(escposData);
-                                    message.setQos(0); // QoS הכי פשוט — שליחה חד־פעמית
+                                    message.setQos(1); // QoS הכי פשוט — שליחה חד־פעמית
                                     message.setRetained(false); // לא לשמור ב־Broker!
                                     localMqttClient.publish(net, message);
                                     Log.i("MQTT", "Publish sent");
 
                                     // שליחת פקודת RESET כדי לנקות את ה־Buffer
-                                    byte[] resetPrinter = new byte[] { 0x1B, 0x40 }; // ESC @ → Reset
-                                    MqttMessage resetMessage = new MqttMessage(resetPrinter);
-                                    resetMessage.setQos(0);
-                                    resetMessage.setRetained(false);
-                                    localMqttClient.publish(net, resetMessage);
+//                                    byte[] resetPrinter = new byte[] { 0x1B, 0x40 }; // ESC @ → Reset
+//                                    MqttMessage resetMessage = new MqttMessage(resetPrinter);
+//                                    resetMessage.setQos(0);
+//                                    resetMessage.setRetained(false);
+//                                    localMqttClient.publish(net, resetMessage);
 
 //                                    localMqttClient.publish(net, new MqttMessage(escposData));
                                     if (localMqttClient.isConnected()) {
                                         localMqttClient.disconnect();
                                         Log.i("MQTT", "Disconnected after publish and reset");
                                     }
-                                    Thread.sleep(200);
+//                                    Thread.sleep(200);
                                     ViewGroup root = ((Activity) context).findViewById(android.R.id.content);
                                     root.removeView(webView);
 
@@ -3549,6 +3938,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                     webView.getSettings().setUseWideViewPort(true);
                     webView.getSettings().setLoadWithOverviewMode(true);
                     webView.getSettings().setJavaScriptEnabled(true);
+                    
                     webView.setInitialScale(100); // חשוב!
 
                     webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
@@ -3631,6 +4021,8 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
             } catch (IOException e) {
                 e.printStackTrace(); // או Log.e(...)
             }
+            Log.i("DEBUG", "ESC/POS total bytes = " + output.size());
+            Log.i("DEBUG", "Bitmap: " + width + "x" + height);
 
             return output.toByteArray();
         }
@@ -3682,13 +4074,28 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
              * @throws JSONException
              */
         @JavascriptInterface
+        public void setDontOpenCashDrawer(boolean value) {
+            dontOpenCashDrawer = value;
+        }
+
+        @JavascriptInterface
+        public boolean getDontOpenCashDrawer() {
+            return dontOpenCashDrawer;
+        }
+
+        private void resetDontOpenCashDrawer() {
+            dontOpenCashDrawer = false;
+        }
+
+
+        @JavascriptInterface
         public void print_invoice3(final String s, final String barcode, int seconds) throws JSONException {
             running = 0;
             final String htmlTemp = s;
-
+            String manufacturer = Build.MANUFACTURER.toLowerCase();
             //NEXGO
-            if(getPlatform() == PLATFORMS.iPOS) {
-                String manufacturer = Build.MANUFACTURER.toLowerCase();
+            if(getPlatform() == PLATFORMS.iPOS && manufacturer.contains("sprd")) {
+
                 if (manufacturer.contains("sprd")) {
                     String tmp = htmlTemp.replace("max-width:170px;width:170px;","max-width:600px; width:600px;");//15px not 35
                     String tmp1 = tmp.replace("max-width: 150px!important;width: 650px;","max-width:600px; width:600px;");//15px not 35
@@ -3711,7 +4118,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                     });
                 }
             }
-            //NEXGO END
+           // NEXGO END
 
             runOnUiThread(new Runnable() {
                 @Override
@@ -3725,12 +4132,13 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                     _htmlTemp = htmlTemp.replace("max-width: 150px!important;","");
 
                     if (getPlatform() == PLATFORMS.IMIN || getPlatform() == PLATFORMS.SUNMI ){
-                        _htmlTemp = _htmlTemp.replaceAll("width: 250px;","");
+                        _htmlTemp = _htmlTemp.replaceAll("width: 250px;","width: 350px;max-width: 350px!important;");
 
                         _htmlTemp = htmlTemp.replace("margin-left: 5px","margin-left: 15px");//15px not 35
 //                        _htmlTemp = _htmlTemp.replace(";width: 250px;",";width: 550px;");
 
                         _htmlTemp = _htmlTemp.replaceAll("width:110px;","width: 45%;");
+                        _htmlTemp = _htmlTemp.replace("font-size: 15;","font-size: 39px !important;");//for citaq machine
                         _htmlTemp = _htmlTemp.replaceAll("width:120px;","width: 45%;");
                         _htmlTemp = _htmlTemp.replaceAll("width:70px;","width: 10%;");
                        _htmlTemp = _htmlTemp.replaceAll("max-width: 150px!important;width: 150px;","width: 250px;");
@@ -3742,7 +4150,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                             m.find() ;
                             downloadLogo(m.group().replace("src=\"","").replace("\"",""));
                         }
-                        _htmlTemp = _htmlTemp+"<style type=\"text/css\">\timg{visibility: hidden;\theight: 0px;}\tbody{height: 0px;}</style>";
+//                        _htmlTemp = _htmlTemp+"<style type=\"text/css\">\timg{visibility: hidden;\theight: 0px;}\tbody{height: 0px;}</style>";
 
                       //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;","max-width:500px;width:450px;");
 //                        _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:600px;width:600px;");
@@ -3768,8 +4176,9 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
                         }
                     }
                     else {
-                      //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:350px;width:350px;");
-                        _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:550px;width:550px;");//for haklaot
+                      //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:480px;width:350px;");
+                      //  _htmlTemp = _htmlTemp.replace("width: 250px;", "width: 350px;");
+                        //_htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:550px;width:550px;");//for chaklaot
                     }
                     if (getPlatform() == PLATFORMS.UROVO){
                         load("<html style=\"height: fit-content;\">" +
@@ -3905,25 +4314,48 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
         @JavascriptInterface
         public String startNexgoPayment(String userName, String password, String terminal, String kupaNum, String amount, String currency,
                                         String tranType, String creditTerms, String paymentsNumber, String firstPayment, String fixedPayment, String isManual, String credit,
-                                        String cardNum, String exDate, String cvv, String id){
+                                        String cardNum, String exDate, String cvv, String id,String masof){
             Log.i("startNexgoPayment-startNexgoPayment" , "startNexgoPayment  -  HERE");
             double amountValue = Double.parseDouble(amount);
             String formattedAmount = String.format("%.2f", amountValue);
-            if ("liv2.yedatop".equals(BuildConfig.DOMAIN)) {
-                EditText editText = findViewById(R.id.transaction_amount_input);
-                editText.setVisibility(View.VISIBLE);
-                CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
-                spinner.setVisibility(View.GONE);
-                FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
-                spinnerContainer.setVisibility(View.GONE);
-                editText.setText("₪"+formattedAmount);
-                TextView tvDate = findViewById(R.id.tvDate);
-                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm   dd.MM.yyyy ", Locale.getDefault());
-                String currentDateAndTime = sdf.format(new Date());
-                tvDate.setText(currentDateAndTime);
-                TextView tvMispar = findViewById(R.id.tvMispar);
-                tvMispar.setText("מסוף:"+kupaNum);
+            if ("liv2.yedatop".equals(BuildConfig.DOMAIN) || "peleliv2.yedatop".equals(BuildConfig.DOMAIN)) {
+
+//                Runnable ui = new Runnable() {
+//                    @Override public void run() {
+//                        EditText editText = findViewById(R.id.transaction_amount_input);
+//                        editText.setVisibility(View.VISIBLE);
+//
+//                        CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
+//                        spinner.setVisibility(View.GONE);
+//
+//                        FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
+//                        spinnerContainer.setVisibility(View.GONE);
+//
+//                        editText.setText("₪" + formattedAmount);
+//
+//                        TextView tvDate = findViewById(R.id.tvDate);
+//                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm   dd.MM.yyyy ", Locale.getDefault());
+//                        tvDate.setText(sdf.format(new Date()));
+//
+//                        TextView tvMispar = findViewById(R.id.tvMispar);
+//                        tvMispar.setText(" מסוף:" + masof);
+//                    }
+//                };
+//
+//                // חשוב: אם אנחנו לא על ה-UI thread — להעביר לשם
+//                if (Looper.myLooper() == Looper.getMainLooper()) {
+//                    ui.run();
+//                } else {
+//                    runOnUiThread(ui);
+//                }
             }
+
+            // ... כל השאר נשאר אותו דבר ...
+            // registerBroadcastReceiver();
+            // CompletableFuture...
+            // future.get();
+            // return resultMessage.get();
+
             registerBroadcastReceiver();
             AtomicReference<String> resultMessage = new AtomicReference<>("");
             nexgoLibraryEventsListener = new NexgoLibraryEventsListener(activity);
@@ -4260,7 +4692,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
         @JavascriptInterface
         public String getTransactionsReport(String com, String wisepayCode)
         {
-            if (BuildConfig.DOMAIN == "liv1.yedatop" || BuildConfig.DOMAIN == "liv.yedatop" || BuildConfig.DOMAIN == "liv2.yedatop"){
+            if (BuildConfig.DOMAIN == "liv1.yedatop" || BuildConfig.DOMAIN == "liv.yedatop" || BuildConfig.DOMAIN == "peleliv2.yedatop" || BuildConfig.DOMAIN == "liv2.yedatop" ){
                     return "";
                 }else{
                 apiDll = new Api();
@@ -4806,6 +5238,7 @@ if(BuildConfig.DOMAIN != "liv.yedatop" && BuildConfig.DOMAIN != "liv1.yedatop" &
 
     @Override
     public void onBackPressed() {
+        super.onBackPressed();
         if (img.getVisibility() == View.VISIBLE)
             img.setVisibility(View.GONE);
         if (webView.getVisibility() == View.GONE)

@@ -195,13 +195,21 @@ public class BackOfficeInterface {
         try{
             addedReceiptWebView = new WebView(this.context);
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
-            lp.setMargins(0,0,100,0);
+            lp.setMargins(0,0,0,0);
             addedReceiptWebView.setLayoutParams(lp);
             frameLauout.addView(addedReceiptWebView,new FrameLayout.LayoutParams( FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-            addedReceiptWebView.setInitialScale(getScale());
+            addedReceiptWebView.setInitialScale(100);
+            addedReceiptWebView.getSettings().setUseWideViewPort(true);
+            addedReceiptWebView.getSettings().setLoadWithOverviewMode(false);
+            addedReceiptWebView.getSettings().setTextZoom(100); // 100=רגיל, נסי 150-250
 
 
             WebSettings settings = addedReceiptWebView.getSettings();
+            settings.setJavaScriptEnabled(true);
+            settings.setDomStorageEnabled(true);
+            settings.setLoadWithOverviewMode(true);
+            settings.setUseWideViewPort(true);
+
             settings.setDefaultTextEncodingName("utf-8");
 
             addedReceiptWebView.enableSlowWholeDocumentDraw();
@@ -220,32 +228,112 @@ public class BackOfficeInterface {
 
     // Inject CSS method: read style.css from assets folder
 // Append stylesheet to document head
+//    private void injectCSS() {
+//        try {
+//
+//            if (addedReceiptWebView == null){
+//                ((Activity)context).runOnUiThread(loadWebView);
+//            }
+//           // addedReceiptWebView.lay
+//            addedReceiptWebView.loadUrl("javascript:(function() {" +
+//                    "document.getElementsByClassName('wrapper')[0].style.marginRight='auto';"+
+//                    "document.getElementsByClassName('wrapper')[0].style.paddingRight='15px';"+
+//                    "document.getElementsByTagName('frame')[0].style.marginRight='auto';"+
+//                    "document.getElementsByTagName('frame')[0].style.paddingRight='25px';"+
+//                    "document.head.insertAdjacentHTML('beforeend', `<style>body{font-size:17px}</style>`)"+
+//                    "document.head.insertAdjacentHTML('beforeend', `<style>td{font-size:17px}</style>`)"+
+//                    "document.head.insertAdjacentHTML('beforeend', `<style>b{font-size:17px}</style>`)"+
+//
+//                    "var iframe = document.getElementsByTagName('frame')[0];"+
+//                    "   var style = document.createElement('style');"+
+//                    "    style.textContent = 'tr, td, div {font-size: 20px;}';"+
+//                    "    iframe.contentDocument.head.appendChild(style);"+
+//
+//                    "})()");
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+    private int getPrinterDotsWidth() {
+        // 80mm:
+        return 576;
+        // 58mm:
+        // return 384;
+    }
     private void injectCSS() {
-        try {
+        if (addedReceiptWebView == null) return;
 
-            if (addedReceiptWebView == null){
-                ((Activity)context).runOnUiThread(loadWebView);
+        ((Activity) context).runOnUiThread(() -> {
+            int W = getPrinterDotsWidth(); // 576
+
+            String js =
+                    "javascript:(function(){" +
+                            "  function apply(doc){" +
+                            "    try{" +
+                            "      var old = doc.querySelector('meta[name=viewport]'); if(old) old.remove();" +
+                            "      var meta = doc.createElement('meta');" +
+                            "      meta.name='viewport';" +
+                            "      meta.content='width=" + W + ", initial-scale=1.0, maximum-scale=1.0, user-scalable=no';" +
+                            "      doc.head.appendChild(meta);" +
+                            "    }catch(e){}" +
+
+                            "    var css = `" +
+                            "      *{ box-sizing:border-box !important; }" +
+                            "      html,body{ margin:0 !important; padding:0 !important; background:#fff !important; }" +
+                            "      body{ direction:rtl !important; text-align:right !important; }" +
+
+                            "      .wrapper,.container,.content,#content,main,section,article{" +
+                            "        width:100% !important; margin:0 !important; padding:0 !important;" +
+                            "      }" +
+
+                            "      table{ width:100% !important; table-layout:auto" +
+                            " !important; border-collapse:collapse !important; }" +
+
+                            "      table, table * {" +
+                            "        font-size: 50px !important;" +
+                            "        line-height: 1.25 !important;" +
+                            "      }" +
+
+                            "      th, th * { font-weight:700 !important; }" +
+                            "      .wrapper, .wrapper * { font-size:50px !important; }" +
+                            "td, th {\n" +
+                            "  white-space: nowrap !important;\n" +
+                            "}"+
+                            "      td, span, span * { font-size:50px !important; }" +
+                            "      b,strong{ font-size:inherit !important; }" +
+                            "    `;" +
+
+                            "    var style = doc.getElementById('print_style_injected');" +
+                            "    if(!style){ style = doc.createElement('style'); style.id='print_style_injected'; doc.head.appendChild(style); }" +
+                            "    style.innerHTML = css;" +
+
+                            // ✅ זה חייב להיות *בתוך* apply(doc) כדי ש-doc יהיה מוגדר
+                            "    try{" +
+                            "      var targets = doc.querySelectorAll('table, table *, .wrapper, .wrapper *, th, td, span, p, strong, b');" +
+                            "      for (var i=0;i<targets.length;i++){" +
+                            "        targets[i].style.setProperty('font-size','50px','important');" +
+                            "        targets[i].style.setProperty('line-height','1.25','important');" +
+                            "      }" +
+                            "    }catch(e){}" +
+
+                            "  }" +
+
+                            "  apply(document);" +
+                            "  var frames=document.querySelectorAll('iframe,frame');" +
+                            "  for(var i=0;i<frames.length;i++){" +
+                            "    try{ if(frames[i].contentDocument) apply(frames[i].contentDocument); }catch(e){}" +
+                            "  }" +
+                            "})();";
+
+
+            String code = js.replace("javascript:", "");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                addedReceiptWebView.evaluateJavascript(code, null);
+            } else {
+                addedReceiptWebView.loadUrl(js);
             }
-           // addedReceiptWebView.lay
-            addedReceiptWebView.loadUrl("javascript:(function() {" +
-                    "document.getElementsByClassName('wrapper')[0].style.marginRight='auto';"+
-                    "document.getElementsByClassName('wrapper')[0].style.paddingRight='15px';"+
-                    "document.getElementsByTagName('frame')[0].style.marginRight='auto';"+
-                    "document.getElementsByTagName('frame')[0].style.paddingRight='25px';"+
-                    "document.head.insertAdjacentHTML('beforeend', `<style>body{font-size:17px}</style>`)"+
-                    "document.head.insertAdjacentHTML('beforeend', `<style>td{font-size:17px}</style>`)"+
-                    "document.head.insertAdjacentHTML('beforeend', `<style>b{font-size:17px}</style>`)"+
-
-                    "var iframe = document.getElementsByTagName('frame')[0];"+
-                    "   var style = document.createElement('style');"+
-                    "    style.textContent = 'tr, td, div {font-size: 20px;}';"+
-                    "    iframe.contentDocument.head.appendChild(style);"+
-
-                    "})()");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 
 
@@ -517,7 +605,6 @@ public class BackOfficeInterface {
 
 
             injectCSS();
-            injectCSS();
 //            addedReceiptWebView.zoomBy(1.05f);
 
 
@@ -533,11 +620,26 @@ public class BackOfficeInterface {
         @Override
         public void run() {
 
+            int W = getPrinterDotsWidth(); // 576
+            int wSpec = View.MeasureSpec.makeMeasureSpec(W, View.MeasureSpec.EXACTLY);
+            int hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
 
-            addedReceiptWebView.measure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED),
-                                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            addedReceiptWebView.measure(wSpec, hSpec);
+            addedReceiptWebView.layout(0, 0, W, addedReceiptWebView.getMeasuredHeight());
 
-            addedReceiptWebView.layout(0, 0, addedReceiptWebView.getMeasuredWidth(), addedReceiptWebView.getMeasuredHeight());
+            Bitmap bitmap = Bitmap.createBitmap(W, addedReceiptWebView.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            addedReceiptWebView.draw(canvas);
+
+
+
+
+
+
+//            addedReceiptWebView.measure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED),
+//                                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+
+//            addedReceiptWebView.layout(0, 0, addedReceiptWebView.getMeasuredWidth(), addedReceiptWebView.getMeasuredHeight());
 
 //            Bitmap bitmap;
 //            if(((BaseActivity)context).getPlatform() != BaseActivity.PLATFORMS.UROVO){
@@ -546,14 +648,14 @@ public class BackOfficeInterface {
 //            else{
 //                 bitmap = Bitmap.createBitmap(addedReceiptWebView.getWidth(), addedReceiptWebView.getHeight(), Bitmap.Config.ARGB_8888);
 //            }
-            Bitmap bitmap = Bitmap.createBitmap(addedReceiptWebView.getWidth(), addedReceiptWebView.getHeight(), Bitmap.Config.ARGB_8888);
+//            Bitmap bitmap = Bitmap.createBitmap(addedReceiptWebView.getWidth(), addedReceiptWebView.getHeight(), Bitmap.Config.ARGB_8888);
 
-            Canvas canvas = new Canvas(bitmap);
-            Paint paint = new Paint();
-            int iHeight = bitmap.getHeight();
-            //bitmap.setHeight(iHeight-600);
-            canvas.drawBitmap(bitmap, 5, 0, paint);
-            addedReceiptWebView.draw(canvas);
+//            Canvas canvas = new Canvas(bitmap);
+//            Paint paint = new Paint();
+//            int iHeight = bitmap.getHeight();
+//            //bitmap.setHeight(iHeight-600);
+//            canvas.drawBitmap(bitmap, 5, 0, paint);
+//            addedReceiptWebView.draw(canvas);
 
             if(((BaseActivity)context).getPlatform() == BaseActivity.PLATFORMS.IMIN){
                 ((BaseActivity)context).mIminPrintUtils.printSingleBitmap(bitmap);
@@ -597,6 +699,22 @@ public class BackOfficeInterface {
                         Log.e("Bitmap", "ה-Bitmap שהועבר היה null");
                     }
                 }
+                else{
+                    CmdFactory cmdFactory = new EscFactory();
+                    Cmd escCmd = cmdFactory.create();
+
+                    int Wi = getPrinterDotsWidth();
+                    escCmd = Utils.addBitmap(escCmd, bitmap, Wi);
+
+
+                    escCmd.append(escCmd.getHeaderCmd());
+
+                    BaseActivity.rtPrinter.writeMsg(escCmd.getAppendCmds());
+                    Utils.cutPaper( BaseActivity.rtPrinter);
+                    ((BackOfficeActivity) context).progress.setVisibility(View.GONE);
+
+                    ((BaseActivity)context).clearPrinterResources();
+                }
             }
 
             else{
@@ -604,7 +722,8 @@ public class BackOfficeInterface {
                 CmdFactory cmdFactory = new EscFactory();
                 Cmd escCmd = cmdFactory.create();
 
-                escCmd = Utils.addBitmap(escCmd, bitmap, bitmap.getWidth());
+                int Wi = getPrinterDotsWidth();
+                escCmd = Utils.addBitmap(escCmd, bitmap, Wi);
 
 
                 escCmd.append(escCmd.getHeaderCmd());

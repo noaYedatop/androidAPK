@@ -53,6 +53,7 @@ import androidx.core.content.ContextCompat;
 //import com.ahmedelsayed.sunmiprinterutill.PrintMe;
 import com.imin.library.IminSDKManager;
 import com.imin.printerlib.IminPrintUtils;
+import com.imin.printerlib.port.UsbPrinter;
 import com.neostra.electronic.Electronic;
 import com.rt.printerlibrary.bean.UsbConfigBean;
 import com.rt.printerlibrary.cmd.Cmd;
@@ -66,7 +67,9 @@ import com.rt.printerlibrary.printer.RTPrinter;
 
 import org.json.JSONArray;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -122,6 +125,18 @@ public class BaseActivity extends AppCompatActivity {
     public boolean isDrawerOpen = false;
     public String fileName = GPIOUtils.Cash_3288; // Example GPIO file
 
+    public boolean dontOpenCashDrawer = false;
+
+    public void setDontOpenCashDrawer(boolean value) {
+        this.dontOpenCashDrawer = value;
+    }
+
+    public boolean consumeDontOpenCashDrawer() {
+        boolean v = this.dontOpenCashDrawer;
+        this.dontOpenCashDrawer = false;   // חד-פעמי: מאפס אחרי שימוש
+        return v;
+    }
+
 
     @TargetApi(Build.VERSION_CODES.O)
     private void disableAutofill() {
@@ -161,6 +176,7 @@ public class BaseActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        //AppLogger.init(this);
 
         StrictMode.allowThreadDiskReads();
 
@@ -360,9 +376,14 @@ public class BaseActivity extends AppCompatActivity {
         }
     }
     private boolean checkPermission() {
-        int result = ContextCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
-        if (result == PackageManager.PERMISSION_GRANTED) {
-            return true;
+        boolean isAndroid14 = android.os.Build.VERSION.SDK_INT >= 34;
+        if(! isAndroid14) {
+            int result = ContextCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
+            if (result == PackageManager.PERMISSION_GRANTED) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return false;
         }
@@ -387,7 +408,10 @@ public class BaseActivity extends AppCompatActivity {
                 // Code for above or equal 23 API Oriented Device
                 // Your Permission granted already .Do next code
             } else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE);
+                boolean isAndroid14 = android.os.Build.VERSION.SDK_INT >= 34;
+                if(! isAndroid14) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE);
+                }
             }
         }
 
@@ -423,10 +447,10 @@ public class BaseActivity extends AppCompatActivity {
             }
 
         }
-        if (mUsbDevice == null) {
-            Log.e("PrinterSetup", "No suitable USB device found.");
-            return;
-        }
+//        if (mUsbDevice == null) {
+//            Log.e("PrinterSetup", "No suitable USB device found.");
+//            return;
+//        }
         PendingIntent mPermissionIntent = PendingIntent.getBroadcast(
                 BaseActivity.this,
                 0,
@@ -478,6 +502,10 @@ public class BaseActivity extends AppCompatActivity {
     }
 
     public void connectUSB(UsbConfigBean usbConfigBean) {
+        if (rtPrinter == null) {          // גיבוי
+            initPrinter();
+            if (rtPrinter == null) return;
+        }
         UsbManager mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         Map<String, UsbDevice> devices = mUsbManager.getDeviceList();
         PIFactory piFactory = new UsbFactory();
@@ -538,29 +566,43 @@ public class BaseActivity extends AppCompatActivity {
         return true;
     }
     public void initPrinter() {
-        if (!isPrinterAvailable()) {
-            Log.w("PrinterInit", "No printer available. Skipping printer initialization.");
-            return;
-        }
-        BaseApp.instance.setCurrentCmdType(BaseEnum.CMD_PIN);
+//        if (!isPrinterAvailable()) {
+//            Log.w("PrinterInit", "No printer available. Skipping printer initialization.");
+//            return;
+//        }
+        //BaseApp.instance.setCurrentCmdType(BaseEnum.CMD_PIN);
+        BaseApp.instance.setCurrentCmdType(BaseEnum.CMD_ESC);
+
 
         printerFactory = new PinPrinterFactory();
         rtPrinter = printerFactory.create();
+
     }
 
     public void print() {
+        Log.i("POS", "print() called");
+
         if (rtPrinter == null){
+            Log.i("POS", "rtPrinter == null → calling initPrinter()");
             initPrinter();
         }
-       openDrawer();
+        boolean skipDrawer = consumeDontOpenCashDrawer();
 
-        handler.postDelayed(printerRunnable,50);
+        if (!skipDrawer) {
+            openDrawer();
+        }
+
+        Log.i("POS", "openDrawer() called, scheduling printerRunnable");
+
+        handler.postDelayed(printerRunnable, 50);
     }
+
 
 
     Runnable printerRunnable = new Runnable() {
         @Override
         public void run() {
+            Log.i("POS", "mIminPrintUtils.printHtml() sent");
             try{
                  int added_height = 30;
                 if(barcodeBitmap != null){
@@ -596,7 +638,7 @@ public class BaseActivity extends AppCompatActivity {
 
 
 
-                if(getPlatform() == PLATFORMS.IMIN/* mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB ) != -1 && mIminPrintUtils.getUsbPrinter() != null*/){
+                if(getPlatform() == PLATFORMS.IMIN){//) || getPlatform() == PLATFORMS.iPOS/* mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB ) != -1 && mIminPrintUtils.getUsbPrinter() != null*/){
                     if (logo != null){
                         if (logo.getWidth() < 350)
                             logo = Bitmap.createScaledBitmap(logo, 350, 150, false);
@@ -609,7 +651,6 @@ public class BaseActivity extends AppCompatActivity {
                         if(barcodeBitmap == null) {
 //                            mIminPrintUtils.printAndFeedPaper(0);
                             mIminPrintUtils.setBarCodeHeight(80);
-                          //  mIminPrintUtils.setBarCodeWidth(200);
 
 //                            mIminPrintUtils.printBarCode(73, barcode, 1);
                             //connectType = 0;
@@ -618,6 +659,8 @@ public class BaseActivity extends AppCompatActivity {
                             mIminPrintUtils.printSingleBitmap(barcodeBitmap, 1);
                         }
                     }
+                    //mIminPrintUtils.printAndFeedPaper(255); //קופהקטנה כמו טאבלט יחדAPOLO
+                    //mIminPrintUtils.printAndFeedPaper(50);//קופהקטנה כמו טאבלט יחדAPOLO
                     mIminPrintUtils.printAndFeedPaper(110);
                     CutPaper();
                     if (data.length() > 1) {
@@ -630,7 +673,6 @@ public class BaseActivity extends AppCompatActivity {
                     if (getPlatform() == PLATFORMS.UROVO){
                     mPrinterManager.open();
                     mPrinterManager.setupPage(-1, -1);
-
                     if (logo != null){
                         if (logo.getWidth() > 350)
                             logo = Bitmap.createScaledBitmap(logo, 350, 150, false);
@@ -722,24 +764,61 @@ public class BaseActivity extends AppCompatActivity {
     };
 
     public void openDrawer() {
+        Log.i("DrawerDebug", "Trying to open drawer on platform: " + getPlatform());
+        Log.i("DrawerDebug", "Manufacturer: " + Build.MANUFACTURER + ", Device: " + Build.MODEL);
+        //IminSDKManager.opencashBox(this);
         String manufacturer = Build.MANUFACTURER.toLowerCase();
         String deviceName = Build.MODEL;
-//        IminSDKManager.opencashBox();
+        //IminSDKManager.opencashBox();
 
-        if (getPlatform() == PLATFORMS.IMIN){
+       if (getPlatform() == PLATFORMS.IMIN || (getPlatform() == PLATFORMS.iPOS && deviceName.contains("rk3568_r"))){
             if(manufacturer.contains("rockchip") && deviceName.contains("rk3288")){
-                GPIOUtils.witchStatus((byte) 0x31, fileName); // פותח את המגירה
+                Log.i("DrawerDebug", "Before sending open drawer command");
+                GPIOUtils.witchStatus((byte) 0x31, fileName);
+                Log.i("DrawerDebug", "Command sent");
 
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         GPIOUtils.witchStatus((byte) 0x30, fileName);
+                        Log.i("DrawerDebug", "Drawer close command sent after delay");
                     }
-                },500);
+                }, 500);
                 isDrawerOpen = true;
+                File portFile = new File(fileName);
+                Log.i("DrawerDebug", "Port file exists: " + portFile.exists());
+
             }
             else{
-                IminSDKManager.opencashBox();
+                UsbDevice usbDevice = null;//APOLO צריך את הבלוק הזה אז לשים הערה את התנאי הקודם שלא ייכנס לשם
+                UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+                HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+                for (UsbDevice device : deviceList.values()) {
+                    Log.d("USB", "Found device: " + device.getDeviceName());
+                    // פה אתה בודק אם זה המדפסת שלך
+                     usbDevice = device; // זה המדפסת
+
+                }
+                PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                        context, 0, new Intent("com.android.example.USB_PERMISSION"), 0
+                );
+                usbManager.requestPermission(usbDevice, permissionIntent);
+                UsbPrinter printer = new UsbPrinter(context);
+                boolean isOpen = printer.isOpen();
+                if (isOpen) {
+                    Log.d("USB", "Printer connection opened");
+                } else {
+                    Log.e("USB", "Failed to open printer connection");
+                }
+                byte[] openCashDrawer = new byte[]{
+                        0x1B, 0x70, 0x00, 0x19, (byte) 0xFA, 0x0A  // הוספתי \n בסוף
+                };
+                // שליחת פקודת ESC/POS דרך ה־SDK
+                IminPrintUtils.getInstance(this).sendRAWData(openCashDrawer);
+
+                //IminSDKManager.opencashBox();
+                IminSDKManager.opencashBox(this);
+                Log.d("CashBox", ">>> הפקודה נשלחה ל-SDK");
             }
             //CashDrawerOpener.openCashDrawer(getApplicationContext());
 //        }else if (getPlatform() == PLATFORMS.SUNMI){
@@ -814,6 +893,7 @@ public class BaseActivity extends AppCompatActivity {
     Runnable receiptPrinterRunnable = new Runnable() {
         @Override
         public void run() {
+            Log.i("POS", "printerRunnable running");
             if (addedReceiptWebView == null){
                 loadWebView();
             }else{

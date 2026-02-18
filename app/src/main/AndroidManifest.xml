@@ -11,7 +11,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+<!--    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>-->
+
     <uses-feature android:name="android.hardware.usb.host" />
     <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS"/>
     <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN"/>
@@ -41,6 +42,7 @@
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:longClickable="false">
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -55,7 +57,8 @@
 
         <receiver
             android:name=".MyAdminReceiver"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:exported="true">
             <meta-data
                 android:name="android.app.device_admin"
                 android:resource="@xml/device_admin" />
@@ -64,14 +67,14 @@
             </intent-filter>
         </receiver>
 
-
         <activity android:name=".BackOfficeActivity" android:exported="true">
         </activity>
         <activity android:name=".LoginActivity">
         </activity>
         <activity android:name=".MainActivity"
             android:lockTaskMode="if_whitelisted"
-            android:windowSoftInputMode="stateAlwaysVisible"
+            android:windowSoftInputMode="stateHidden|adjustPan"
+            android:hardwareAccelerated="false"
             android:exported="true"
             >
             <!--            android:windowSoftInputMode="stateAlwaysHidden"-->

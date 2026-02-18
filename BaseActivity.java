@@ -141,7 +141,7 @@ public class BaseActivity extends AppCompatActivity {
     }
 
     private boolean checkPermission() {
-        int result = ContextCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
+        // rrr   int result = ContextCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
         if (result == PackageManager.PERMISSION_GRANTED) {
             return true;
         } else {
@@ -167,7 +167,7 @@ public class BaseActivity extends AppCompatActivity {
                 // Code for above or equal 23 API Oriented Device
                 // Your Permission granted already .Do next code
             } else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE);
+                //rrr ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE);
             }
         }
 
@@ -380,7 +380,7 @@ public class BaseActivity extends AppCompatActivity {
 
                     CutPaper();
 
-                    if (data.length() > 1) {
+                    if (data.length(prin) > 1) {
 
                         handler.postDelayed(printAnother, 600);
                     }else{
@@ -487,7 +487,7 @@ public class BaseActivity extends AppCompatActivity {
     };
 
     public void openDrawer() {
-
+        Utils.openDrawer(rtPrinter);//rrrrrrrrrr
         if (getPlatform() == PLATFORMS.IMIN){
             IminSDKManager.opencashBox();
         }else if (getPlatform() == PLATFORMS.SUNMI){
@@ -561,6 +561,8 @@ public class BaseActivity extends AppCompatActivity {
         addedReceiptWebView = new WebView(getApplicationContext());
         addedReceiptWebView.addJavascriptInterface(jsInterface, "android");
         addedReceiptWebView.getSettings().setJavaScriptEnabled(true);
+        webView.addJavascriptInterface(new WebAppBridge(), "android");
+
         FrameLayout.LayoutParams lp;
         if (getPlatform() == PLATFORMS.UROVO) {
             lp = new FrameLayout.LayoutParams(350, FrameLayout.LayoutParams.MATCH_PARENT);
