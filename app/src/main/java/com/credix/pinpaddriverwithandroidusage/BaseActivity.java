@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
@@ -125,17 +126,17 @@ public class BaseActivity extends AppCompatActivity {
     public boolean isDrawerOpen = false;
     public String fileName = GPIOUtils.Cash_3288; // Example GPIO file
 
-    public boolean dontOpenCashDrawer = false;
-
-    public void setDontOpenCashDrawer(boolean value) {
-        this.dontOpenCashDrawer = value;
-    }
-
-    public boolean consumeDontOpenCashDrawer() {
-        boolean v = this.dontOpenCashDrawer;
-        this.dontOpenCashDrawer = false;   // חד-פעמי: מאפס אחרי שימוש
-        return v;
-    }
+//    public boolean dontOpenCashDrawer = false;
+//
+//    public void setDontOpenCashDrawer(boolean value) {
+//        this.dontOpenCashDrawer = value;
+//    }
+//
+//    public boolean consumeDontOpenCashDrawer() {
+//        boolean v = this.dontOpenCashDrawer;
+//        this.dontOpenCashDrawer = false;   // חד-פעמי: מאפס אחרי שימוש
+//        return v;
+//    }
 
 
     @TargetApi(Build.VERSION_CODES.O)
@@ -177,7 +178,7 @@ public class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         //AppLogger.init(this);
-
+        Log.e("WHICH_ACTIVITY", "onCreate of: " + getClass().getName());
         StrictMode.allowThreadDiskReads();
 
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
@@ -194,8 +195,15 @@ public class BaseActivity extends AppCompatActivity {
         mDevice = new DeviceManager();
         mPrinterManager = new PrinterManager();
         try {
+            Log.e("BOOTMMMMM", "2 mPrinterManager.open OK");
             mPrinterManager.open();
-        }catch ( Exception e){}
+            Log.e("BOOTMMMM", "mPrinterManager.open OK");
+            Log.e("PRINTER", "open OK");
+        } catch (Throwable t) {
+            Log.e("PRINTER", "open FAILED - continue without printer", t);
+            // הכי חשוב: לא לעשות שום שימוש במדפסת אחרי זה
+
+        }
 
         //presenet product
 
@@ -447,16 +455,25 @@ public class BaseActivity extends AppCompatActivity {
             }
 
         }
-//        if (mUsbDevice == null) {
-//            Log.e("PrinterSetup", "No suitable USB device found.");
-//            return;
-//        }
+
+        if (mUsbDevice == null) {
+            Log.e("PrinterSetup", "BBBBBBBBBB No suitable USB device found. deviceList=" + deviceList.size());
+            return;
+        }
+
+        int piFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            piFlags |= PendingIntent.FLAG_IMMUTABLE; // חובה באנדרואיד 12+
+        }
+
         PendingIntent mPermissionIntent = PendingIntent.getBroadcast(
                 BaseActivity.this,
+
                 0,
                 new Intent(BaseActivity.this.getApplicationInfo().packageName),
-                0);
-
+                0
+                //piFlags
+        );
         UsbConfigBean configObj = new UsbConfigBean(BaseApp.getInstance(), mUsbDevice, mPermissionIntent);
 
         connectUSB(configObj);
@@ -586,7 +603,7 @@ public class BaseActivity extends AppCompatActivity {
             Log.i("POS", "rtPrinter == null → calling initPrinter()");
             initPrinter();
         }
-        boolean skipDrawer = consumeDontOpenCashDrawer();
+        boolean skipDrawer = false;//consumeDontOpenCashDrawer();
 
         if (!skipDrawer) {
             openDrawer();
@@ -611,8 +628,9 @@ public class BaseActivity extends AppCompatActivity {
                 else if (getPlatform() == PLATFORMS.UROVO){
                     added_height = 00;
                 }else if (getPlatform() == PLATFORMS.iPOS){
-                    //added_height = 50;
-                    added_height = 00;
+                    //added_height = 50;//לא ברור למה זה
+                    //added_height = 0;
+                    added_height = -200;//adytech
                 }
                 else if (getPlatform() == PLATFORMS.IMIN){
                     added_height = -300;
@@ -639,12 +657,31 @@ public class BaseActivity extends AppCompatActivity {
 
 
                 if(getPlatform() == PLATFORMS.IMIN){//) || getPlatform() == PLATFORMS.iPOS/* mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB ) != -1 && mIminPrintUtils.getUsbPrinter() != null*/){
-                    if (logo != null){
-                        if (logo.getWidth() < 350)
-                            logo = Bitmap.createScaledBitmap(logo, 350, 150, false);
 
-                        mIminPrintUtils.printSingleBitmap(logo,1);
-                        mIminPrintUtils.printAndFeedPaper(100);
+//                    try {
+//                        URL url = new URL("https://android.yedatop.com/officefiles/papa/_MlaitekPro/panda.jpg300.jpg");
+//                        logo = BitmapFactory.decodeStream(url.openConnection().getInputStream());
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                    if (logo != null){
+//                        if (logo.getWidth() < 350)
+//                            logo = Bitmap.createScaledBitmap(logo, 250, 150, false);
+//
+//                        mIminPrintUtils.printSingleBitmap(logo,1);
+//                        mIminPrintUtils.printAndFeedPaper(100);
+//                    }
+                    if (logo != null) {
+                        int maxWidth = 350;
+
+                        if (logo.getWidth() > maxWidth) {
+                            int newWidth = maxWidth;
+                            int newHeight = (logo.getHeight() * newWidth) / logo.getWidth();
+                            logo = Bitmap.createScaledBitmap(logo, newWidth, newHeight, true);
+                        }
+                        Bitmap printLogo = prepareLogoForPrint(logo);
+                        mIminPrintUtils.printSingleBitmap(printLogo, 1);
+//                        mIminPrintUtils.printSingleBitmap(logo, 1);
                     }
                     mIminPrintUtils.printSingleBitmap(bitmap, 1);
                     if (barcode.length() > 1) {
@@ -756,14 +793,40 @@ public class BaseActivity extends AppCompatActivity {
                         paint = null;
                     }
                 }
-
             }
             catch(Exception e){}
 
         }
     };
+    private Bitmap prepareLogoForPrint(Bitmap src) {
+        Bitmap bmp = src.copy(Bitmap.Config.ARGB_8888, true);
+
+        int width = bmp.getWidth();
+        int height = bmp.getHeight();
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int pixel = bmp.getPixel(x, y);
+
+                int r = (pixel >> 16) & 0xff;
+                int g = (pixel >> 8) & 0xff;
+                int b = pixel & 0xff;
+
+                int gray = (r + g + b) / 3;
+
+                if (gray > 200) {
+                    bmp.setPixel(x, y, 0xFFFFFFFF);
+                } else {
+                    bmp.setPixel(x, y, 0xFF000000);
+                }
+            }
+        }
+
+        return bmp;
+    }
 
     public void openDrawer() {
+        //Utils.openDrawer(rtPrinter); // adytech
         Log.i("DrawerDebug", "Trying to open drawer on platform: " + getPlatform());
         Log.i("DrawerDebug", "Manufacturer: " + Build.MANUFACTURER + ", Device: " + Build.MODEL);
         //IminSDKManager.opencashBox(this);
@@ -799,8 +862,16 @@ public class BaseActivity extends AppCompatActivity {
                      usbDevice = device; // זה המדפסת
 
                 }
+                int piFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    piFlags |= PendingIntent.FLAG_IMMUTABLE;
+                }
+
                 PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                        context, 0, new Intent("com.android.example.USB_PERMISSION"), 0
+                        context,
+                        0,
+                        new Intent("com.android.example.USB_PERMISSION"),
+                        piFlags
                 );
                 usbManager.requestPermission(usbDevice, permissionIntent);
                 UsbPrinter printer = new UsbPrinter(context);
@@ -871,12 +942,18 @@ public class BaseActivity extends AppCompatActivity {
     }
 
     public void downloadLogo(String _url){
+        long t0 = SystemClock.elapsedRealtime();
+
         if (logo != null) return;;
         try {
             URL url = new URL(_url);
             logo = BitmapFactory.decodeStream(url.openConnection().getInputStream());
+            Log.e("LOGO", "downloadLogo OK in " + (SystemClock.elapsedRealtime()-t0) + "ms url=" + _url);
+
         } catch(IOException e) {
             System.out.println(e);
+            Log.e("LOGO", "downloadLogo FAILED url=" + _url, e);
+
         }
 
     }
@@ -915,7 +992,8 @@ public class BaseActivity extends AppCompatActivity {
         }else{
             lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
         }
-        lp.setMargins(0,0,100,0);
+        lp.setMargins(0,0,0,0);// for imin machine
+      //  lp.setMargins(0,0,100,0);
         addedReceiptWebView.setLayoutParams(lp);
         receiptWebView.addView(addedReceiptWebView,lp);
 
@@ -980,9 +1058,9 @@ public class BaseActivity extends AppCompatActivity {
         }
 
 
-
         @Override
         public boolean shouldOverrideUrlLoading(WebView webView, String urlNewString) {
+            Log.e("WEB_DEBUG", "Loading MAIN_PATH = " + urlNewString);
             webView.loadUrl(urlNewString);
             return true;
         }

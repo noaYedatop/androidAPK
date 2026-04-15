@@ -36,8 +36,8 @@ android {
         applicationId "com.yedatop.maytal"
         minSdkVersion 24
         targetSdkVersion 34
-        versionCode 79
-        versionName "v3.0.21"
+        versionCode 82
+        versionName "v3.0.13"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         multiDexEnabled true
         //buildConfigField "String", "API_URL", "\"https://api.example.com\""
@@ -58,7 +58,7 @@ android {
     productFlavors {
         pelecard {
 //            dimension "office1"
-            buildConfigField 'String', 'DOMAIN', '"pos.pelecard"'
+            buildConfigField 'String', 'DOMAIN', '"pos.pelecard.com"'
             applicationId "com.yedatop.maytal"
             sourceSets {
                 main {
@@ -72,7 +72,7 @@ android {
 
         office1 {
 //            dimension "office1"
-            buildConfigField 'String', 'DOMAIN', '"office1.yedatop"'
+            buildConfigField 'String', 'DOMAIN', '"office1.yedatop.com"'
             applicationId "com.yedatop.maytal"
             sourceSets {
                 main {
@@ -86,7 +86,7 @@ android {
 
         liv1 {
 //            dimension "liv1s"
-            buildConfigField 'String', 'DOMAIN', '"liv1.yedatop"'
+            buildConfigField 'String', 'DOMAIN', '"liv1.yedatop.com"'
             applicationId "com.yedatop.maytal"
             sourceSets {
                 main {
@@ -112,7 +112,7 @@ android {
 //        }
         mayafood {
 //            dimension "liv1s"
-            buildConfigField 'String', 'DOMAIN', '"mayafood.yedatop"'
+            buildConfigField 'String', 'DOMAIN', '"mayafood.yedatop.com"'
             applicationId "com.yedatop.mayafood"
             sourceSets {
                 main {
@@ -127,7 +127,7 @@ android {
         android {
             namespace "com.credix.pinpaddriverwithandroidusage"  // ✅ Set namespace here
             defaultConfig {
-                    buildConfigField 'String', 'DOMAIN', '"android.yedatop"'
+                    buildConfigField 'String', 'DOMAIN', '"android.yedatop.com"'
             }
             //buildConfigField 'String', 'DOMAIN', '"android"'
             applicationId "com.yedatop.maytal"
@@ -138,10 +138,10 @@ android {
                     manifest.srcFile "src/main/AndroidManifest.xml"
                     jniLibs.srcDirs = ['src/main/jniLibs']
                 }
-                peleliv2 {
-                    manifest.srcFile "src/peleliv2/AndroidManifest.xml"
-                    res.srcDirs += ["src/peleliv2/res"]
-                }
+//                peleliv2 {
+//                    manifest.srcFile "src/peleliv2/AndroidManifest.xml"
+//                    res.srcDirs += ["src/peleliv2/res"]
+//                }
             }
 
 //            manifest.srcFile "main/AndroidManifest.xml"
@@ -149,7 +149,7 @@ android {
         office3 {
 //            dimension "android"
 
-            buildConfigField 'String', 'DOMAIN', '"office3.yedatop"'
+            buildConfigField 'String', 'DOMAIN', '"office3.yedatop.com"'
             applicationId "com.yedatop.maytal"
             sourceSets {
                 main {
@@ -163,7 +163,7 @@ android {
         office4 {
 //            dimension "android"
 
-            buildConfigField 'String', 'DOMAIN', '"office4.yedatop"'
+            buildConfigField 'String', 'DOMAIN', '"office4.yedatop.com"'
             applicationId "com.yedatop.maytal"
             sourceSets {
                 main {
@@ -175,7 +175,7 @@ android {
 //            manifest.srcFile "main/AndroidManifest.xml"
         }
         liv {
-            buildConfigField 'String', 'DOMAIN', '"liv.yedatop"'
+            buildConfigField 'String', 'DOMAIN', '"liv.yedatop.com"'
 //            dimension "liv"
 
             applicationId "com.yedatop.maytal"
@@ -189,7 +189,7 @@ android {
         }
 
         liv2 {
-            buildConfigField 'String', 'DOMAIN', '"liv2.yedatop"'
+            buildConfigField 'String', 'DOMAIN', '"liv2.yedatop.com"'
 //            dimension "liv"
 
             applicationId "com.yedatop.maytal"
@@ -201,13 +201,26 @@ android {
                 }
             }
         }
-        peleliv2 {
-            buildConfigField 'String', 'DOMAIN', '"peleliv2.yedatop"'
+        pospelecash {
+            buildConfigField 'String', 'DOMAIN', '"pos.pelecash.co.il"'
 //            dimension "liv"
 
             applicationId "com.yedatop.maytal"
-
+            sourceSets {
+                main {
+                    java.srcDirs = ['src/main/java']
+                    res.srcDirs = ["src/main/res"]
+                    manifest.srcFile "src/liv/AndroidManifest.xml"
+                }
+            }
         }
+//        peleliv2 {
+//            buildConfigField 'String', 'DOMAIN', '"peleliv2.yedatop"'
+////            dimension "liv"
+//
+//            applicationId "com.yedatop.maytal"
+//
+//        }
 //        dangot {
 //            buildConfigField 'String', 'DOMAIN', '"dangot"'
 ////            dimension "liv"
@@ -296,9 +309,9 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.6'
     implementation 'com.github.mik3y:usb-serial-for-android:3.3.1'
     implementation 'com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.1'
-
+//    implementation 'com.github.cepr0:android-serialport-api:1.0.1'
     //implementation 'com.github.AhmedElsayed94:SunmiPrinterSdk:1.0.0' JAVa 17
-
+    implementation files('libs/android_serialport_api.jar')
     implementation 'com.squareup.okhttp3:okhttp:3.10.0'
     //implementation group:'com.pixplicity.sharp', name:'sharp', version:'1.1.3'
     //implementation 'com.pixplicity.sharp:sharp:1.1.3'
@@ -308,7 +321,7 @@ dependencies {
 
     // Import the BoM for the Firebase platform
     implementation platform('com.google.firebase:firebase-bom:28.0.1')
-
+    implementation files('libs/classes.jar')
     // Declare the dependencies for the Crashlytics and Analytics libraries
     // When using the BoM, you don't specify versions in Firebase library dependencies
     implementation 'com.google.firebase:firebase-crashlytics'

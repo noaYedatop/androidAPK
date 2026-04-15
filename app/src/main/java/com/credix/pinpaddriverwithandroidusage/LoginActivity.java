@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.media.MediaRouter;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.Window;
@@ -39,12 +40,12 @@ public class LoginActivity extends BaseActivity {
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         Utils.printInputLanguages(this);
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            WebView.enableSlowWholeDocumentDraw();
+            //WebView.enableSlowWholeDocumentDraw();
         }
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.activity_main_login);
         setContentView(R.layout.activity_main);
-
+        Log.e("BOOTTTT", "setContentView = activity_main");  // או activity_main_login בהתאם
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, MY_CAMERA_REQUEST_CODE);
         }

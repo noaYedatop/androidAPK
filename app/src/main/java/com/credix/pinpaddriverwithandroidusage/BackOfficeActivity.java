@@ -81,6 +81,7 @@ public class BackOfficeActivity extends BaseActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Log.e("BOOTTTT", "setContentView = activity_main");  // או activity_main_login בהתאם
         root_view = this.findViewById(R.id.root_view);
         progress = findViewById(R.id.progress);
 

@@ -74,7 +74,7 @@
         <activity android:name=".MainActivity"
             android:lockTaskMode="if_whitelisted"
             android:windowSoftInputMode="stateHidden|adjustPan"
-            android:hardwareAccelerated="false"
+            android:hardwareAccelerated="true"
             android:exported="true"
             >
             <!--            android:windowSoftInputMode="stateAlwaysHidden"-->

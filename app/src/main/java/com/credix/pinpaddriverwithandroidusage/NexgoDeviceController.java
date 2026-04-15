@@ -226,6 +226,7 @@ public class NexgoDeviceController implements DeviceController {
     @NonNull
     @Override
     public String getDeviceSerial() {
+        //return "0";
         try {
             Object info = deviceEngine.getDeviceInfo();
             if (info == null) return null;

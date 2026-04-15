@@ -87,6 +87,7 @@ public class MyPresentation extends Presentation {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.display);
+        Log.e("BOOTTT", "setContentView = display");  // או activity_main_login בהתאם
         scrollView = findViewById(R.id.scrollView);
         tableLayout = findViewById(R.id.tableLayout);
         totalPriceTextView = findViewById(R.id.totalPrice);
@@ -107,7 +108,7 @@ public class MyPresentation extends Presentation {
     }
 
     public void displayVidoe(String name){
-        String videoPath = "https://"+BuildConfig.DOMAIN+".com/officefiles/"+name+"/screen/screen2.mp4";
+        String videoPath = "https://"+BuildConfig.DOMAIN+"/officefiles/"+name+"/screen/screen2.mp4";
         Uri videoUri = Uri.parse(videoPath);
         alternativeTextView.setVisibility(View.GONE);
         summaryRow.setVisibility(View.GONE);
@@ -127,7 +128,7 @@ public class MyPresentation extends Presentation {
 
 
     public void displayPicture(String name){
-       String imagePath = "https://"+BuildConfig.DOMAIN+".com/officefiles/"+name+"/screen/screen2.png";
+       String imagePath = "https://"+BuildConfig.DOMAIN+"/officefiles/"+name+"/screen/screen2.png";
         imageView = findViewById(R.id.imageView);
         alternativeTextView.setVisibility(View.GONE);
         summaryRow.setVisibility(View.GONE);
@@ -144,8 +145,8 @@ public class MyPresentation extends Presentation {
 
         videoView.setVisibility(View.GONE);
         imageView.setVisibility(View.GONE);
-        String imagePath1 = "https://"+BuildConfig.DOMAIN+".com/officefiles/"+name+"/screen/logo1.png";
-        String imagePath2 = "https://"+BuildConfig.DOMAIN+".com/officefiles/"+name+"/screen/logo2.png";
+        String imagePath1 = "https://"+BuildConfig.DOMAIN+"/officefiles/"+name+"/screen/logo1.png";
+        String imagePath2 = "https://"+BuildConfig.DOMAIN+"/officefiles/"+name+"/screen/logo2.png";
         Log.d("IMG_URL", imagePath2);
         logo_first = findViewById(R.id.logo_first);
         logo_first.setVisibility(View.VISIBLE);

@@ -129,7 +129,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     private static Boolean _isCancelTransaction = false;
     private static final int REQUEST_PERMISSION_MULTIPLE = 911;
     private long lastCreditPayTime = 0;
-  //  private InputMethodManager inputMethodManager;
+    //  private InputMethodManager inputMethodManager;
     private boolean useFocus = false;
 
     private String scannedText = "";
@@ -137,10 +137,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     private FirebaseAnalytics mFirebaseAnalytics;
     public static String DOMAIN = BuildConfig.DOMAIN;
-    public static String SN = Build.getSerial(); // דורש הרשאות, ובד"כ לא יעבוד באפליקציה רגילה
-Log.d("SERIAL", serial);
-    ;
-
 //    public static String DOMAIN = "liv";
 //      public static String DOMAIN = Bu;
 
@@ -148,7 +144,7 @@ Log.d("SERIAL", serial);
     /*SCREENS*/
 //    public static final String MAIN_PATH = "https://kupa.yedatop.com";
 //    public static final String MAIN_PATH = "https://office1.yedatop.com";
-    public static final String MAIN_PATH = "https://"+DOMAIN+".com";
+    public static final String MAIN_PATH = "https://"+DOMAIN;
     //public static final String MAIN_PATH = "https://dangot.yedatop.com";
 
     private static final String[] BLOCKED_SCREENS = new String[]{
@@ -212,6 +208,8 @@ Log.d("SERIAL", serial);
     private ElectronicCallback iMinCallback = new ElectronicCallback() {
         @Override
         public void electronicStatus(String weight, String status) {
+            Log.e("IMINNNNNNN", "callback called weight=" + weight + " status=" + status);
+
             iMinWeight = Double.parseDouble(weight);
         }
     };
@@ -224,21 +222,17 @@ Log.d("SERIAL", serial);
     private void connectImin(){
         try {
             mElectronic = new Electronic.Builder()
-                    .setDevicePath("/dev/ttyS1").setBaudrate(9600)
+                    .setDevicePath("/dev/ttyS4").setBaudrate(9600)
                     .setReceiveCallback(iMinCallback)
                     .builder();
-//            current_platform = PLATFORMS.IMIN;
+            current_platform = PLATFORMS.IMIN;
         }catch(Exception e){}
     }
     private double getFromIminWeight(){
         return iMinWeight;
     }
 
-    private String getSN(){
-        String serial = Build.getSerial(); // דורש הרשאות, ובד"כ לא יעבוד באפליקציה רגילה
-        Log.d("SERIAL", serial);
-        return serial;
-    }
+
     private double getFromUsbWeight(){
 
         UsbManager manager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -294,7 +288,7 @@ Log.d("SERIAL", serial);
         inProcess = false;
         if (input_barcode != null )
 //            input_barcode.requestFocus();
-        dll = null;
+            dll = null;
         lastCreditPayTime = 0;
 
         initScan();
@@ -389,14 +383,14 @@ Log.d("SERIAL", serial);
                         xml.put("report",result.optString("report"));
                         resp.put("data",xml);
 
-                         final String zz    = resp.toString();
+                        final String zz    = resp.toString();
                         Log.i("zz ==>   " , zz);
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
                                 String load = "javascript:(function(data) {" +
-                                "angular.element(document.querySelector('#credit_appr')).scope().getUrovoTransactionsReportResult(JSON.stringify(data));"+
-                            "})("+zz+")";
+                                        "angular.element(document.querySelector('#credit_appr')).scope().getUrovoTransactionsReportResult(JSON.stringify(data));"+
+                                        "})("+zz+")";
                                 webView.loadUrl(load);
 //                                webView.loadUrl("javascript:angular.element(document.querySelector('#credit_appr')).scope().getUrovoTransactionsReportResult(JSON.stringify(data))");
                             }
@@ -542,7 +536,7 @@ Log.d("SERIAL", serial);
 
     @JavascriptInterface
     public void startUrovoPayment(String amount,String approvalNumber, int pay_num,double pay_first,int ashray_f_credit,
-                                   int moto, String cardNumber,String expDate, String cvv, String cardHolder_id){
+                                  int moto, String cardNumber,String expDate, String cvv, String cardHolder_id){
 
         int tranType = 1; // Regular
         double amt = Double.parseDouble(amount);
@@ -638,7 +632,7 @@ Log.d("SERIAL", serial);
 
                 RequestBody body = RequestBody.create(JSON, f_reqeustString); // new
                 Request request = new Request.Builder()
-                            .url("http://127.0.0.1:8081/SPICy")
+                        .url("http://127.0.0.1:8081/SPICy")
                         .post(body)
                         .build();
                 Response response = null;
@@ -696,10 +690,10 @@ Log.d("SERIAL", serial);
                 return "TOURIST";
             case 1:  return "ISRACARD";
             case 2: // VISA_CAL
-                    if (manpic == 2)
-                        return "VISA_CAL";
-                    if (manpic == 6)
-                        return "LEUMICARD";
+                if (manpic == 2)
+                    return "VISA_CAL";
+                if (manpic == 6)
+                    return "LEUMICARD";
             case 3:
                 return "DINERS";
             case 4:
@@ -733,17 +727,17 @@ Log.d("SERIAL", serial);
 //                Forced - Transaction was forced to be approved offline - עסקה מאולצת
 
             case 4://TT_CashBack = 6
-                    return "עסקה עם מזומן";
+                return "עסקה עם מזומן";
 
             case 7: //TT_Cash = 7
-                    return "עסקת מזומן";
+                return "עסקת מזומן";
 //                Cash - עסקת מזומן
 
             case 11: //TT_StandingOrder = 11
 //                Standing Order - הוראת קבע, אתחול או תשלום תור”ן
 
             case 30:  //  TT_BalanceCheck = 30
-                    return "בירור יתרה בכרטיס נטען";
+                return "בירור יתרה בכרטיס נטען";
 //                Balance Check - בירור יתרה לכרטיס נטען
 
             case 53: //TT_Refund = 53
@@ -956,7 +950,7 @@ Log.d("SERIAL", serial);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        if(BuildConfig.DOMAIN != "liv" &&  BuildConfig.DOMAIN != "peleliv2" && BuildConfig.DOMAIN != "liv2" &&  BuildConfig.DOMAIN != "mayafood" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if(BuildConfig.DOMAIN != "liv" &&  BuildConfig.DOMAIN != "liv2" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             WebView.enableSlowWholeDocumentDraw();
         }
 
@@ -996,11 +990,11 @@ Log.d("SERIAL", serial);
         findViewById(R.id.btnDummyPayment).setOnClickListener(this);
 
 
-          connectImin();
+        connectImin();
 
 
         initWebView();
-        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "peleliv2" && BuildConfig.DOMAIN != "liv2" && BuildConfig.DOMAIN != "mayafod" ) {
+        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "liv2" ) {
             getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
             setListenerToRootView();
         }
@@ -1016,14 +1010,14 @@ Log.d("SERIAL", serial);
     }
 
     private void enableKeyboard(){
-    //    this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
+        //    this.webView.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
         this.webView.setFocusable(true);
         this.webView.setFocusableInTouchMode(true);
         this.inputMethodManager.showSoftInputFromInputMethod(MainActivity.this.getCurrentFocus().getWindowToken(), 0);
     }
 
     private void disableKeyboard(){
-      //  this.webView.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
+        //  this.webView.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
         this.webView.setFocusable(false);
         this.webView.setFocusableInTouchMode(false);
     }
@@ -1083,10 +1077,10 @@ Log.d("SERIAL", serial);
 
 
     public void setListenerToRootView() {
-            final View parentView = ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+        final View parentView = ((ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
 
 //            final View activityRootView = getWindow().getDecorView().findViewById(android.R.id.content);
-            parentView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+        parentView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             private boolean alreadyOpen;
             private final int defaultKeyboardHeightDP = 100;
             private final int EstimatedKeyboardDP = defaultKeyboardHeightDP + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP ? 48 : 0);
@@ -1112,7 +1106,7 @@ Log.d("SERIAL", serial);
 
 
                 if (heightDiff > 5) { // 99% of the time the height diff will be due to a keyboard.
-                   hideSoftKeyboard(null);
+                    hideSoftKeyboard(null);
                 } else if (isOpened == true) {
                 }
             }
@@ -1137,7 +1131,6 @@ Log.d("SERIAL", serial);
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             WebView.enableSlowWholeDocumentDraw();
         }
-        String SN = String serial = Build.getSerial(); // דורש הרשאות, ובד"כ לא יעבוד באפליקציה רגילה
 
         webView.addJavascriptInterface(jsInterface, "android");
         webView.addJavascriptInterface(jsInterface, "android2");
@@ -1159,7 +1152,7 @@ Log.d("SERIAL", serial);
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         webView.getSettings().setDomStorageEnabled(true);
 
-        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "peleliv2" && BuildConfig.DOMAIN != "liv2" && BuildConfig.DOMAIN != "mayafod")
+        if (BuildConfig.DOMAIN != "liv" && BuildConfig.DOMAIN != "liv2")
         {
             webView.setOnTouchListener(new View.OnTouchListener() {
                 @Override
@@ -1168,7 +1161,7 @@ Log.d("SERIAL", serial);
 //                if (focusKeyboard) {
                     MainActivity.this.hideSoftKeyboard(null);
 
-                  //  input_barcode.requestFocus();
+                    //  input_barcode.requestFocus();
                     Utils.hideSystemUI(getWindow());
 //                }
 
@@ -1383,7 +1376,7 @@ Log.d("SERIAL", serial);
         });
 */
 
-        webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1&sn="+SN);
+        webView.loadUrl("https://"+DOMAIN+"/modules/stock/cashbox_fe?dangot=1");
         // webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe");
 //        webView.postUrl("https://office1.yedatop.com/modules/stock/rep_tazmech_print.php?&simple=1&sDate=01/02/2021&eDate=18/02/2021",("zedmode=1&journum=104").getBytes());
     }
@@ -1454,10 +1447,10 @@ Log.d("SERIAL", serial);
             case R.id.btnDummyInvoice:
                 JsonObject res = Utils.dummyInvoiceData();
 
-              //  print_i_machine(res.get("invoice").toString(),res.get("barcode").toString(),1);
+                //  print_i_machine(res.get("invoice").toString(),res.get("barcode").toString(),1);
                 break;
             case R.id.btnFunctions:
-             //   startActivity(new Intent(MainActivity.this, FunctionActivity.class));
+                //   startActivity(new Intent(MainActivity.this, FunctionActivity.class));
                 break;
             case R.id.btnDummyPayment:
                 // pinPadTest();
@@ -1657,8 +1650,8 @@ Log.d("SERIAL", serial);
             else if (getPlatform() == PLATFORMS.IMIN){
                 return MainActivity.this.getFromIminWeight();
             }
-        return 0;
-    }
+            return 0;
+        }
         /**
          *
          * Print HTML Invoice
@@ -1705,7 +1698,7 @@ Log.d("SERIAL", serial);
                         }
                         _htmlTemp = _htmlTemp+"<style type=\"text/css\">\timg{visibility: hidden;\theight: 0px;}\tbody{height: 0px;}</style>";
 
-                      //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;","max-width:500px;width:450px;");
+                        //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;","max-width:500px;width:450px;");
 //                        _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:600px;width:600px;");
                         if (barcode != "0")
                             MainActivity.this.barcode = barcode;
@@ -1737,7 +1730,7 @@ Log.d("SERIAL", serial);
                             "\t<style>\n" +
                             "\t\t   body{\n" +
 
-                                "margin: unset;"+
+                            "margin: unset;"+
                             "\t\t\tpadding: 0 !important;\n" +
                             "\t\t}\n" +
 
@@ -1745,9 +1738,9 @@ Log.d("SERIAL", serial);
                             "max-width:unset !important;"+
                             " font-size: "+font_size+"px !important;" +
 
-                                    "width: 93% !important;"+
+                            "width: 93% !important;"+
                             "margin-left: 15px !important;;"+
-                    "margin-right: 15px !important;;"+
+                            "margin-right: 15px !important;;"+
 //                            "\t\t\twidth: 98% !important;\n" +
 //                            "\t\t\tmargin-left: auto;\n" +
 //                            "\t\t\tmargin-right: auto;\n" +
@@ -1756,11 +1749,11 @@ Log.d("SERIAL", serial);
                             "\t<script>\n console.log('height = Running 1');" +
 
                             "\t(function () {\n  console.log('height = Running2'); " +
-                                "\tsetTimeout(function(){  console.log('height = Running3'); " +
-                                    "\t if (android != undefined) {\n "+
-                                    "\t android.height(document.getElementsByTagName(\"table\")[0].clientHeight);\n" +
-                                        "\t}\n" +
-                                    "},100);"+
+                            "\tsetTimeout(function(){  console.log('height = Running3'); " +
+                            "\t if (android != undefined) {\n "+
+                            "\t android.height(document.getElementsByTagName(\"table\")[0].clientHeight);\n" +
+                            "\t}\n" +
+                            "},100);"+
 
                             "\t})();\n" +
                             "\t </script>\n" +
@@ -1815,7 +1808,7 @@ Log.d("SERIAL", serial);
                 }
                 credixResult = new JSONObject();
                 try {
-                     paymentItem = new Gson().fromJson(itra, EnvPaymentItem.class);
+                    paymentItem = new Gson().fromJson(itra, EnvPaymentItem.class);
                 }catch(JsonSyntaxException ex){
                     Log.e(TAG, "No Input");
                     return "";
@@ -1832,11 +1825,11 @@ Log.d("SERIAL", serial);
                 int res;
 //                if ( BuildConfig.DEBUG){
 //                    //res = dll.open("192.168.1.117", paymentItem.IpayUserName, paymentItem.IpayPassword);
-                    res = dll.open(paymentItem.IpayCom/*"192.168.0.110"*/, paymentItem.IpayUserName, paymentItem.IpayPassword);
+                res = dll.open(paymentItem.IpayCom/*"192.168.0.110"*/, paymentItem.IpayUserName, paymentItem.IpayPassword);
 
 
 //                }else {
-                    res = dll.open(paymentItem.IpayCom/*"192.168.0.110"*/, paymentItem.IpayUserName, paymentItem.IpayPassword);
+                res = dll.open(paymentItem.IpayCom/*"192.168.0.110"*/, paymentItem.IpayUserName, paymentItem.IpayPassword);
 //                }
 
 
@@ -2080,31 +2073,31 @@ Log.d("SERIAL", serial);
         @JavascriptInterface
         public String getTransactionsReport(String com, String wisepayCode)
         {
-            if (BuildConfig.DOMAIN == "liv" || BuildConfig.DOMAIN == "peleliv2" || BuildConfig.DOMAIN == "liv2" || BuildConfig.DOMAIN == "mayafood"){
-                    return "";
-                }else{
+            if (BuildConfig.DOMAIN == "liv" || BuildConfig.DOMAIN == "liv2"){
+                return "";
+            }else{
                 apiDll = new Api();
-            String address = String.format("COM{0}", com);
-            if (com.length() > 2)
-            {
-                address = com;
-            }
-            apiDll.SetDebug(true);
-            //if (WisepayPinPad_Open2(address, "4633") != 0)//papa
-            if (apiDll.Open2(address, wisepayCode) != 0)
-            {
-                return "{\"error\": \"connection towisepay failed " + "\" }";
-            }
-            int result = apiDll.DepositTxns2("REPORT_TYPE_XML", false, "deposit - context");
+                String address = String.format("COM{0}", com);
+                if (com.length() > 2)
+                {
+                    address = com;
+                }
+                apiDll.SetDebug(true);
+                //if (WisepayPinPad_Open2(address, "4633") != 0)//papa
+                if (apiDll.Open2(address, wisepayCode) != 0)
+                {
+                    return "{\"error\": \"connection towisepay failed " + "\" }";
+                }
+                int result = apiDll.DepositTxns2("REPORT_TYPE_XML", false, "deposit - context");
 
-            String myRes = ReadReply(result, apiDll);
+                String myRes = ReadReply(result, apiDll);
 
-            if(myRes == "error"){
-                return "{\"error\": \"fail send request\"}";
-            }
-            else{
-                if (apiDll.Close() != 0)
-                { String reportResponse = null;
+                if(myRes == "error"){
+                    return "{\"error\": \"fail send request\"}";
+                }
+                else{
+                    if (apiDll.Close() != 0)
+                    { String reportResponse = null;
 //            if (!GetResponse(ref reportResponse, true))
 //            {
 //                return "{\"error\": \"fail send request\"}";
@@ -2120,10 +2113,10 @@ Log.d("SERIAL", serial);
 //                reportResponse = Encoding.UTF8.GetString(bytes);
 //                return reportResponse;
 //            }
-                    Log.i(TAG,"Failed to Got Response pinpad");
-                    //return "{\"error\": \"close\"}";
+                        Log.i(TAG,"Failed to Got Response pinpad");
+                        //return "{\"error\": \"close\"}";
+                    }
                 }
-            }
                 return myRes;
 
             }

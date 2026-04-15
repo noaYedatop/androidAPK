@@ -61,7 +61,7 @@ import okhttp3.Response;
 public class BackOfficeInterface {
     static final String TAG = "BackOfficeInterface";
     private WebView addedReceiptWebView;
-//    private final RTPrinter rtPrinter;
+    //    private final RTPrinter rtPrinter;
     private Context context;
     private android.os.Handler handler = new android.os.Handler();
     private WebView calling ;
@@ -127,7 +127,7 @@ public class BackOfficeInterface {
     public void backoffice_sendEmail(String email){
         if (alertDialog != null) return;
         if (email == null || email.isEmpty()){
-           this.setEmail();
+            this.setEmail();
         }else {
             this.approveEmail(email);
         }
@@ -142,22 +142,22 @@ public class BackOfficeInterface {
         }
     };
     private void approveEmail(String email){
-            LayoutInflater inflater = (LayoutInflater)
-                    ((Activity)context).getSystemService(LAYOUT_INFLATER_SERVICE);
-            final View view = inflater.inflate(R.layout.set_email_dialog, null);
-            alertDialog = new AlertDialog.Builder(context).create();
-            alertDialog.setTitle("אשר שליחת דוא״ל אל: ");
-            alertDialog.setCancelable(false);
-            alertDialog.setView(view);
-            emailET = (EditText) view.findViewById(R.id.email);
-            emailET.setEnabled(false);
-            emailET.setText(email);
+        LayoutInflater inflater = (LayoutInflater)
+                ((Activity)context).getSystemService(LAYOUT_INFLATER_SERVICE);
+        final View view = inflater.inflate(R.layout.set_email_dialog, null);
+        alertDialog = new AlertDialog.Builder(context).create();
+        alertDialog.setTitle("אשר שליחת דוא״ל אל: ");
+        alertDialog.setCancelable(false);
+        alertDialog.setView(view);
+        emailET = (EditText) view.findViewById(R.id.email);
+        emailET.setEnabled(false);
+        emailET.setText(email);
 
-            alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK", emailDialogueApprove);
+        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK", emailDialogueApprove);
 
 
-            alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel",dialogueCancel);
-            alertDialog.show();
+        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Cancel",dialogueCancel);
+        alertDialog.show();
 
     }
 
@@ -258,6 +258,7 @@ public class BackOfficeInterface {
     private int getPrinterDotsWidth() {
         // 80mm:
         return 576;
+        //return 500; //adytech
         // 58mm:
         // return 384;
     }
@@ -291,16 +292,16 @@ public class BackOfficeInterface {
                             " !important; border-collapse:collapse !important; }" +
 
                             "      table, table * {" +
-                            "        font-size: 50px !important;" +
+                            "        font-size: 30px !important;" +
                             "        line-height: 1.25 !important;" +
                             "      }" +
 
                             "      th, th * { font-weight:700 !important; }" +
-                            "      .wrapper, .wrapper * { font-size:50px !important; }" +
+                            "      .wrapper, .wrapper * { font-size:30px !important; }" +
                             "td, th {\n" +
                             "  white-space: nowrap !important;\n" +
                             "}"+
-                            "      td, span, span * { font-size:50px !important; }" +
+                            "      td, span, span * { font-size:30px !important; }" +
                             "      b,strong{ font-size:inherit !important; }" +
                             "    `;" +
 
@@ -312,7 +313,7 @@ public class BackOfficeInterface {
                             "    try{" +
                             "      var targets = doc.querySelectorAll('table, table *, .wrapper, .wrapper *, th, td, span, p, strong, b');" +
                             "      for (var i=0;i<targets.length;i++){" +
-                            "        targets[i].style.setProperty('font-size','50px','important');" +
+                            "        targets[i].style.setProperty('font-size','30px','important');" +
                             "        targets[i].style.setProperty('line-height','1.25','important');" +
                             "      }" +
                             "    }catch(e){}" +
@@ -543,7 +544,7 @@ public class BackOfficeInterface {
         Log.i("APIIIIII ", apiKey);
         return apiKey;
     }
-        @JavascriptInterface
+    @JavascriptInterface
     public void  print_invoice3(final String s) throws JSONException {
         print(MainActivity.MAIN_PATH+s);
 

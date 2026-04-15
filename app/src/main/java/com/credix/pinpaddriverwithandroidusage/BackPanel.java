@@ -46,7 +46,7 @@ public class BackPanel extends Presentation {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(layout);
-
+        Log.e("BOOT", "setContentView = layout " + layout);  // או activity_main_login בהתאם
 //        SumDisplay = layout.findViewById(R.id.SumDisplay);
 //
 //        if(Utils.isImin() && !SystemDataHandler.isBackPanelPictureMode())
