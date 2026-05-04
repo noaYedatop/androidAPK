@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+<!--    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>-->
     <uses-feature android:name="android.hardware.usb.host" />
     <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -60,7 +60,8 @@
                 android:name="android.app.device_admin"
                 android:resource="@xml/device_admin" />
             <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"
+                    android:exported="true"/>
             </intent-filter>
         </receiver>
 
@@ -72,11 +73,11 @@
         <activity android:name=".MainActivity"
             android:lockTaskMode="if_whitelisted"
             android:windowSoftInputMode="stateHidden|adjustPan"
-            android:hardwareAccelerated="true"
+            android:hardwareAccelerated="false"
             android:exported="true"
             >
             <!--            android:windowSoftInputMode="stateAlwaysHidden"-->
-            <!--            android:windowSoftInputMode="stateUnspecified"-->
+            <!--            android:windowSoftInputMode="JJHstateUnspecified"-->
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -404,25 +404,27 @@ public class BaseActivity extends AppCompatActivity {
         DisplayManager dm = (DisplayManager) getSystemService(DISPLAY_SERVICE);
         displays = dm.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION);
 
-        updateContents();
+        // אל תציגי presentation ברירת מחדל אם כבר יש מסך אחורי פעיל עם תוכן
+        if (mPresentationScreeen == null || !mPresentationScreeen.isShowing()) {
+            updateContents();
 
-        if (mPresentation != null)
-            mPresentation.setOnDismissListener(mOnDismissListener);
-
-        if (Build.VERSION.SDK_INT >= 23) {
-
-            if (checkPermission())
-            {
-                // Code for above or equal 23 API Oriented Device
-                // Your Permission granted already .Do next code
-            } else {
-                boolean isAndroid14 = android.os.Build.VERSION.SDK_INT >= 34;
-                if(! isAndroid14) {
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE);
-                }
+            if (mPresentation != null) {
+                mPresentation.setOnDismissListener(mOnDismissListener);
             }
         }
 
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (!checkPermission()) {
+                boolean isAndroid14 = android.os.Build.VERSION.SDK_INT >= 34;
+                if (!isAndroid14) {
+                    ActivityCompat.requestPermissions(
+                            this,
+                            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                            REQUEST_CODE
+                    );
+                }
+            }
+        }
     }
 
     /**
@@ -544,7 +546,10 @@ public class BaseActivity extends AppCompatActivity {
 
     private void updateContents() {
         if(displays.length == 0) return;;
-
+        // אם כבר יש Presentation שמציג תמונה/לוגו/וידאו – לא לדרוס אותו
+        if (mPresentationScreeen != null && mPresentationScreeen.isShowing()) {
+            return;
+        }
         if (mPresentation == null ){
             mPresentation = new MyPresentation(this,displays[0]);
             // mPresentation = new MyPresentation(this, presentationDisplay, productList);
@@ -827,6 +832,7 @@ public class BaseActivity extends AppCompatActivity {
 
     public void openDrawer() {
         //Utils.openDrawer(rtPrinter); // adytech
+
         Log.i("DrawerDebug", "Trying to open drawer on platform: " + getPlatform());
         Log.i("DrawerDebug", "Manufacturer: " + Build.MANUFACTURER + ", Device: " + Build.MODEL);
         //IminSDKManager.opencashBox(this);

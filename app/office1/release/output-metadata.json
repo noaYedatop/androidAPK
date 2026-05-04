@@ -16,8 +16,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 78,
-      "versionName": "v3.0.21",
+      "versionCode": 83,
+      "versionName": "v3.0.13",
       "outputFile": "app-office1-armeabi-v7a-release.apk"
     },
     {
@@ -29,8 +29,8 @@
         }
       ],
       "attributes": [],
-      "versionCode": 78,
-      "versionName": "v3.0.21",
+      "versionCode": 83,
+      "versionName": "v3.0.13",
       "outputFile": "app-office1-arm64-v8a-release.apk"
     }
   ],

@@ -9,7 +9,16 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.os.Parcel;
 import android.os.Bundle;
-
+import android.provider.Settings;
+import android.app.AlertDialog;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Button;
+import android.widget.Toast;
+import android.content.ClipboardManager;
+import android.content.ClipData;
+import android.content.Context;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -136,6 +145,8 @@ import com.google.gson.JsonSyntaxException;
 import com.google.zxing.*;
 //import com.google.zxing.common.BitMatrix; 17
 //import com.google.zxing.oned.Code128Writer; 17
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.oned.Code128Writer;
 import com.hoho.android.usbserial.driver.Ch34xSerialDriver;
 import com.hoho.android.usbserial.driver.ProbeTable;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
@@ -1118,55 +1129,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     private double getFromAdytechWeight() {
         ScaleManager scaleManager = ScaleManager.getInstance();
         return scaleManager.getLastWeight();
-//        try {
-//
-//            if (!adytechReady || adytechWeighUtils == null) {
-//                Log.e(ADYTECH_TAG, "GET_WEIGHT: scale not ready");
-//                return -1;
-//            }
-//
-//            if (!adytechHasReading) {
-//                Log.e(ADYTECH_TAG, "GET_WEIGHT: no reading yet");
-//                return -1;
-//            }
-//
-//            long age = System.currentTimeMillis() - adytechLastUpdateTs;
-//            if (age > ADYTECH_STALE_MS) {
-//                Log.e(ADYTECH_TAG, "GET_WEIGHT: stale reading, ageMs=" + age + ", current=" + adytechCurrentWeight);
-//                return -1;
-//            }
-//
-//            double diff = Double.isNaN(adytechLastWeight) ? 0.0 : Math.abs(adytechCurrentWeight - adytechLastWeight);
-//
-//            if (Double.isNaN(adytechLastWeight) || diff > ADYTECH_EPSILON) {
-//                adytechLastWeight = adytechCurrentWeight;
-//                adytechStableCount = 1;
-//            } else {
-//                if (adytechStableCount < 1000) {
-//                    adytechStableCount++;
-//                }
-//            }
-//
-//            boolean isStable = adytechStableCount >= ADYTECH_STABLE_THRESHOLD;
-//
-//            Log.e(ADYTECH_TAG, "GET_WEIGHT state: current=" + adytechCurrentWeight
-//                    + ", last=" + adytechLastWeight
-//                    + ", diff=" + diff
-//                    + ", stableCount=" + adytechStableCount
-//                    + ", isStable=" + isStable
-//                    + ", ageMs=" + age);
-//
-//            if (isStable) {
-//                Log.e(ADYTECH_TAG, "GET_WEIGHT RETURN = " + adytechCurrentWeight);
-//                return adytechCurrentWeight;
-//            }
-//
-//            return -1;
-//
-//        } catch (Exception e) {
-//            Log.e(ADYTECH_TAG, "getFromAdytechWeight failed", e);
-//            return -1;
-//        }
     }
 
     private void resetAdytechState() {
@@ -2070,6 +2032,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     }
 
     private NexgoDeviceController nexgoDeviceController;
+    private String deviceId;  // 👈 משתנה גלובלי
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -2084,8 +2047,20 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         super.onCreate(savedInstanceState);
         //
         // .init();
-       ScaleManager.getInstance();
+        //setupTechnicianAccess();
 
+        ScaleManager.getInstance();
+        if("android.yedatop.com".equals(BuildConfig.DOMAIN) || "office1.yedatop.com".equals(BuildConfig.DOMAIN)){
+            deviceId = Settings.Secure.getString(
+                    getContentResolver(),
+                    Settings.Secure.ANDROID_ID
+            );
+        } else {
+            //לשים בהערה אם לא נקסגו וכן אנדרואיד
+            nexgoDeviceController = new NexgoDeviceController(this); // יש לך context פה for pelecard
+            deviceId = nexgoDeviceController.getDeviceSerial();//for android "0". pelecard getserial
+        }
+        Log.i("DEVICE_ID" ,deviceId );
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         // getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
         //WindowManager.LayoutParams.FLAG_SECURE);
@@ -2152,7 +2127,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             }
         });
         barcode_scanner = (ZXingScannerView) findViewById(R.id.barcode_scanner);
-        //nexgoDeviceController = new NexgoDeviceController(this); // יש לך context פה for pelecard
+
 
         img = (ImageView)findViewById(R.id.img);
         reloadView = findViewById(R.id.reload);
@@ -2176,9 +2151,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         btnDummyInvoice.setOnClickListener(this);
         findViewById(R.id.btnDummyPayment).setOnClickListener(this);
 
-        connectImin();//rrr IMIN!!!!!!!!!!!
+        //connectImin();//IMIN!!!!! remove for adytech!!!
         //testAllPorts();
         initWebView();
+//        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+//            Log.e("DEVICE_OVERLAY", "FORCE SHOW FROM ONCREATE");
+//            addDeviceIdNativeOverlay();
+//        }, 800);
         boolean isExcludedDomainn =
                 "liv.yedatop.com".equals(BuildConfig.DOMAIN) ||
                         "liv1.yedatop".equals(BuildConfig.DOMAIN) ||
@@ -2231,7 +2210,205 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             loadUrl(url);
         }
     }
+    private final Handler overlayHandler = new Handler(Looper.getMainLooper());
+    private Runnable showDeviceOverlayRunnable;
 
+    private View deviceIdOverlay;
+
+    private void removeDeviceIdNativeOverlay() {
+        try {
+            if (deviceIdOverlay != null && deviceIdOverlay.getParent() != null) {
+                ((ViewGroup) deviceIdOverlay.getParent()).removeView(deviceIdOverlay);
+            }
+            deviceIdOverlay = null;
+        } catch (Exception ignored) {}
+    }
+
+    private void addDeviceIdNativeOverlay() {
+        try {
+            String idToShow = deviceId;
+
+            if (idToShow == null || idToShow.trim().isEmpty()) {
+                idToShow = Settings.Secure.getString(
+                        getContentResolver(),
+                        Settings.Secure.ANDROID_ID
+                );
+            }
+
+            if (deviceIdOverlay != null) {
+                try {
+                    ((ViewGroup) deviceIdOverlay.getParent()).removeView(deviceIdOverlay);
+                } catch (Exception ignored) {}
+                deviceIdOverlay = null;
+            }
+
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setGravity(Gravity.CENTER);
+            card.setPadding(16, 12, 16, 12); // היה 24/18
+            card.setElevation(99999f);
+
+            GradientDrawable bg = new GradientDrawable(
+                    GradientDrawable.Orientation.LEFT_RIGHT,
+                    new int[]{
+                            Color.parseColor("#1E3A8A"),
+                            Color.parseColor("#2563EB"),
+                            Color.parseColor("#06B6D4")
+                    }
+            );
+            bg.setCornerRadius(20);
+            bg.setAlpha(230); // קצת שקוף
+            card.setBackground(bg);
+
+            TextView title = new TextView(this);
+            title.setText("מזהה קופה לטכנאי");
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(15);
+            title.setTypeface(null, Typeface.BOLD);
+            title.setGravity(Gravity.CENTER);
+
+            TextView idText = new TextView(this);
+            idText.setText(idToShow);
+            idText.setTextColor(Color.WHITE);
+            idText.setTextSize(14);
+            idText.setTypeface(null, Typeface.BOLD);
+            idText.setGravity(Gravity.CENTER);
+            idText.setPadding(0, 4, 0, 6); // קטן יותר
+
+            ImageView barcodeView = new ImageView(this);
+            Bitmap barcode = generateBarcode(idToShow, 420, 100);
+
+            if (barcode != null) {
+                barcodeView.setImageBitmap(barcode);
+                barcodeView.setBackgroundColor(Color.WHITE);
+                barcodeView.setPadding(6, 6, 6, 6); // היה 10
+
+                LinearLayout.LayoutParams barcodeParams = new LinearLayout.LayoutParams(
+                        320,
+                        80
+                );
+                barcodeView.setLayoutParams(barcodeParams);
+            }
+
+            card.addView(title);
+            card.addView(idText);
+
+            if (barcode != null) {
+                card.addView(barcodeView);
+            }
+
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+            );
+            params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            params.bottomMargin = 45;
+
+            addContentView(card, params);
+
+            deviceIdOverlay = card;
+            card.bringToFront();
+
+            final String finalId = idToShow;
+
+            card.setOnClickListener(v -> {
+                ClipboardManager clipboard =
+                        (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+
+                ClipData clip = ClipData.newPlainText("Device ID", finalId);
+                clipboard.setPrimaryClip(clip);
+
+                Toast.makeText(this, "המזהה הועתק", Toast.LENGTH_SHORT).show();
+            });
+
+        } catch (Exception e) {
+            Log.e("DEVICE_OVERLAY", "failed to show overlay", e);
+            Toast.makeText(this, "שגיאה בהצגת מזהה", Toast.LENGTH_LONG).show();
+        }
+    }
+    private Bitmap generateBarcode(String data, int width, int height) {
+        try {
+            BitMatrix bitMatrix = new Code128Writer().encode(
+                    data,
+                    BarcodeFormat.CODE_128,
+                    width,
+                    height
+            );
+
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    bitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+
+            return bitmap;
+        } catch (Exception e) {
+            Log.e("BARCODE", "failed to generate barcode", e);
+            return null;
+        }
+    }
+    private int techClickCount = 0;
+    private long lastTechClickTime = 0;
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (!isOnLoginScreen) {
+            return super.dispatchTouchEvent(ev);
+        }
+        if (ev.getAction() == android.view.MotionEvent.ACTION_UP) {
+
+            long now = System.currentTimeMillis();
+
+            // אם עברו יותר מ-2 שניות בין לחיצות - איפוס
+            if (now - lastTechClickTime > 2000) {
+                techClickCount = 0;
+            }
+
+            lastTechClickTime = now;
+            techClickCount++;
+
+            if (techClickCount >= 7) {
+                techClickCount = 0;
+                showDeviceIdDialog();
+                return true;
+            }
+        }
+
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private void showDeviceIdDialog() {
+        String deviceId = Settings.Secure.getString(
+                getContentResolver(),
+                Settings.Secure.ANDROID_ID
+        );
+
+        View view = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_device_id, null);
+
+        TextView deviceIdText = view.findViewById(R.id.deviceIdText);
+        Button copyButton = view.findViewById(R.id.copyButton);
+
+        deviceIdText.setText(deviceId);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(view)
+                .create();
+
+        copyButton.setOnClickListener(v -> {
+            ClipboardManager clipboard =
+                    (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+
+            ClipData clip = ClipData.newPlainText("Device ID", deviceId);
+            clipboard.setPrimaryClip(clip);
+
+            Toast.makeText(this, "המזהה הועתק", Toast.LENGTH_SHORT).show();
+        });
+
+        dialog.show();
+    }
     private final BroadcastReceiver commonReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -2628,7 +2805,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     private void loadUrl(String url) {
         // WebView webView = findViewById(R.id.webview);
         webView.loadUrl(url);
-        webView.getSettings().setJavaScriptEnabled(true);
+        //webView.getSettings().setJavaScriptEnabled(true);
 
     }
     private String constructUrlBasedOnZicuy(String zicuy) {
@@ -2793,6 +2970,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             return insets;
         });
     }
+    private boolean isOnLoginScreen = false;
     private void initWebView() {
         etBarcode.setCursorVisible(false);
         input_barcode.setCursorVisible(false);
@@ -2948,12 +3126,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                 String domainSafe = (DOMAIN == null) ? "" : DOMAIN.trim();
 
                 // אם זה "login"
-                if (lower.contains("login")) {
-                    try {
-                        openLogin(url);
-                    } catch (Throwable t) {
-                        Log.e("WEB_DEBUG", "openLogin crashed for url=" + url, t);
-                    }
+                if (lower.contains("login") || lower.contains("logink")) {
+                    Log.e("WEB_DEBUG", "LOGIN IN SAME WEBVIEW: " + url);
+                    view.loadUrl(url);
                     return true;
                 }
 
@@ -2982,6 +3157,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 Log.e("WEB_DEBUGGGG", "PAGE START: " + url);
+                Log.e("DEVICE_OVERLAY", "PAGE START: " + url);
+
             }
             private void openInBrowser(String url) {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -3029,7 +3206,24 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 //                        "\n" +
 //                        " } \n" +
 //                        "    })");
+                if (url != null && url.toLowerCase().contains("logink")) {
+//                    new AlertDialog.Builder(MainActivity.this)
+//                            .setTitle("מזהה קופה")
+//                            .setMessage(deviceId)
+//                            .setPositiveButton("סגור", null)
+//                            .show();
+                }
+                String lower = url == null ? "" : url.toLowerCase();
 
+                isOnLoginScreen = lower.contains("/login") || lower.contains("/logink");
+
+                Log.e("PAGE_FINISHED", lower);
+
+                if (isOnLoginScreen) {
+                    addDeviceIdNativeOverlay();
+                } else {
+                    removeDeviceIdNativeOverlay();
+                }
             }
         });
         webView.setOnLongClickListener(new View.OnLongClickListener() {
@@ -3173,16 +3367,15 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
 
 //for pelecard and serial number
-        String sn = "0";//nexgoDeviceController.getDeviceSerial();
-        Log.d("NEXGO_SN", "sn=" + sn);
-//
-       // webView.loadUrl("https://"+DOMAIN+"/modules/stock/cashbox_fe?dangot=1&loginMode=serial&sn="+sn);
-String finalUrl = "https://" + DOMAIN + "/modules/stock/cashbox_fe?dangot=1&loginMode=serial&sn=" + sn;
-Log.e("URL_CHECK", "finalUrl=" + finalUrl);
-webView.loadUrl(finalUrl);
+
+        Log.d("NEXGO_SN", "sn=" + deviceId);
+        webView.loadUrl("https://"+DOMAIN+"/modules/stock/cashbox_fe?dangot=1&snMode=serial&sn="+deviceId);
+        //String finalUrl = "https://" + DOMAIN + "/modules/stock/cashbox_fe?dangot=1&sn=" + sn;
+//Log.e("URL_CHECK", "finalUrl=" + finalUrl);
+//webView.loadUrl(finalUrl);
 //        Log.d("NEXGO_SN", "url=" + "https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1&sn="+Uri.encode(sn));
-//             webView.loadUrl("https://"+DOMAIN+".yedatop.com/modules/stock/cashbox_fe?dangot=1&runner=1");//for runner
-//        }
+//             webView.loadUrl("https://"+DOMAIN+".com/modules/stock/cashbox_fe?dangot=1&runner=1");//for runner
+        //}
         //end for pelecard
 
 
@@ -4601,8 +4794,14 @@ webView.loadUrl(finalUrl);
                     }
                     else {
                         //  _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:480px;width:350px;");
-                        //  _htmlTemp = _htmlTemp.replace("width: 250px;", "width: 350px;");
-                        //_htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:550px;width:550px;");//for chaklaot
+//                          _htmlTemp = _htmlTemp.replace("width: 250px;", "width: 350px;");
+//                        _htmlTemp = _htmlTemp.replace("max-width:170px;width:170px;", "max-width:550px;width:550px;");//for chaklaot
+//                        _htmlTemp = _htmlTemp.replaceAll("width:110px;","width: 45%;");
+                        _htmlTemp = _htmlTemp.replace("font-size: 15;","font-size: 39px !important;");//for citaq machine
+//                        _htmlTemp = _htmlTemp.replaceAll("width:120px;","width: 45%;");
+//                        _htmlTemp = _htmlTemp.replaceAll("width:70px;","width: 10%;");
+//                        _htmlTemp = _htmlTemp.replaceAll("max-width: 150px!important;width: 150px;","width: 250px;");
+//                        _htmlTemp = _htmlTemp.replaceAll("width: 250px;","width: 750px;max-width:750px");
                     }
                     if (getPlatform() == PLATFORMS.UROVO){
                         load("<html style=\"height: fit-content;\">" +
@@ -5707,6 +5906,8 @@ webView.loadUrl(finalUrl);
 
         Intent intent = new Intent(this, BackOfficeActivity.class);
         intent.putExtra("URL",url);
+        intent.putExtra("present_type", type_present_global);
+        intent.putExtra("present_username", username_for_path);
         startActivity(intent);
 
     }

@@ -95,6 +95,18 @@ public class BackOfficeActivity extends BaseActivity {
         Intent intent = getIntent();
         url = intent.getStringExtra("URL");
 
+        String presentType = intent.getStringExtra("present_type");
+        String presentUsername = intent.getStringExtra("present_username");
+
+        if (presentType != null && presentUsername != null) {
+            if (presentType.equals("1")) {
+                showPicture(presentUsername);
+            } else if (presentType.equals("2")) {
+                showVideo(presentUsername);
+            } else if (presentType.equals("3")) {
+                showLogo(presentUsername);
+            }
+        }
 
         inputMethodManager = (InputMethodManager) BackOfficeActivity.this.getSystemService(Activity.INPUT_METHOD_SERVICE);
 

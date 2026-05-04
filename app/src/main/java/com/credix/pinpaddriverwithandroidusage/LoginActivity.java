@@ -40,7 +40,7 @@ public class LoginActivity extends BaseActivity {
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         Utils.printInputLanguages(this);
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            //WebView.enableSlowWholeDocumentDraw();
+            WebView.enableSlowWholeDocumentDraw();
         }
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.activity_main_login);
