@@ -16,7 +16,7 @@
         }
       ],
       "attributes": [],
-      "versionCode": 81,
+      "versionCode": 83,
       "versionName": "v3.0.13",
       "outputFile": "app-pospelecash-armeabi-v7a-release.apk"
     },
@@ -29,7 +29,7 @@
         }
       ],
       "attributes": [],
-      "versionCode": 81,
+      "versionCode": 83,
       "versionName": "v3.0.13",
       "outputFile": "app-pospelecash-arm64-v8a-release.apk"
     }

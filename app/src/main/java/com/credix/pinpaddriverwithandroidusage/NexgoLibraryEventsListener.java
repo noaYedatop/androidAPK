@@ -24,22 +24,22 @@ public class NexgoLibraryEventsListener implements NexgoEventsListener {
     public void onEventPin(PinEvent pinEvent) {
         Log.i("onEventPin: " , pinEvent.name());
 
-//        switch (pinEvent) {
-//            case PIN_FIRST_TIME:
-//                onNewPin("PIN_SCREEN_NAVIGATE");
-//                break;
-//            case PIN_ENTRY_COMPLETED:
-//                onNewPin("PIN_ENTERED_EVENT");
-//                break;
-//            case PIN_ENTRY_DIGIT:
-//                onNewPin("PIN_DIGIT_EVENT");
-//                break;
-//            case PIN_ENTRY_CLEAR:
-//                onNewPin("PIN_CLEAR_DIGITS_EVENT");
-//                break;
-//            default:
-//                break;
-//        }
+        switch (pinEvent) {
+            case PIN_FIRST_TIME:
+                onNewPin("PIN_SCREEN_NAVIGATE");
+                break;
+            case PIN_ENTRY_COMPLETED:
+                onNewPin("PIN_ENTERED_EVENT");
+                break;
+            case PIN_ENTRY_DIGIT:
+                onNewPin("PIN_DIGIT_EVENT");
+                break;
+            case PIN_ENTRY_CLEAR:
+                onNewPin("PIN_CLEAR_DIGITS_EVENT");
+                break;
+            default:
+                break;
+        }
     }
 
     private void onNewTransactionMessage(String msg) {

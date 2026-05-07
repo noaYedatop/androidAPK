@@ -633,9 +633,9 @@ public class BaseActivity extends AppCompatActivity {
                 else if (getPlatform() == PLATFORMS.UROVO){
                     added_height = 00;
                 }else if (getPlatform() == PLATFORMS.iPOS){
-                    //added_height = 50;//לא ברור למה זה
+                    // added_height = 50;//לא ברור למה זה
                     //added_height = 0;
-                    added_height = -200;//adytech
+                      added_height = -200;//adytech
                 }
                 else if (getPlatform() == PLATFORMS.IMIN){
                     added_height = -300;
@@ -998,8 +998,8 @@ public class BaseActivity extends AppCompatActivity {
         }else{
             lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
         }
-        lp.setMargins(0,0,0,0);// for imin machine
-      //  lp.setMargins(0,0,100,0);
+        //  lp.setMargins(0,0,0,0);// for imin machine
+       lp.setMargins(0,0,100,0);
         addedReceiptWebView.setLayoutParams(lp);
         receiptWebView.addView(addedReceiptWebView,lp);
 

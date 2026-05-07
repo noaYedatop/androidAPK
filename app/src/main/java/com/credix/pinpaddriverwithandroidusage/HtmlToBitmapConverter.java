@@ -45,6 +45,7 @@ public class HtmlToBitmapConverter {
                         webView.getSettings().setBuiltInZoomControls(true);
                         webView.getSettings().setDisplayZoomControls(false);
 
+
                         if (webView.getMeasuredWidth() > 0 && webView.getMeasuredHeight() > 0) {
                             Bitmap bitmap = Bitmap.createBitmap(
                                     webView.getMeasuredWidth(),

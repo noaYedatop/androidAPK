@@ -11,6 +11,7 @@ import android.os.Parcel;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.app.AlertDialog;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
@@ -346,6 +347,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     private TableLayout tableLayout;
     public String type_present_global;
     public String username_for_path;
+    private int pinDigitsCount = 0;
+    private double currentAmount_for_ashray = 0;
+    private LinearLayout pinDotsLayout;
+    private boolean isPinScreenVisible = false;
+    private PinStarView pinStar1, pinStar2, pinStar3, pinStar4;
 
     static {
         try {
@@ -1284,6 +1290,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         // For other key presses, call the super method
         return super.onKeyDown(keyCode, event);
     }
+
+
+
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
@@ -2185,6 +2194,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                 unregisterBroadcastReceiver();
                 transactionTextView = findViewById(R.id.transaction_message_text);
                 nexgoListener = new NexgoLibraryEventsListener(this);
+                registerBroadcastReceiver();
             }
             // if (getPlatform() == PLATFORMS.UROVO) {
             // getUrovoStatus();
@@ -2437,14 +2447,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                     Log.w("NexgoDebug", "No transaction message received");
                 }
 
-//                // לוגים על אירועי PIN
-//                String pinEvent = intent.getStringExtra("pin_event");
-//                if (pinEvent != null) {
-//                    Log.i("NexgoDebug", "Pin event received: " + pinEvent);
-//                    updatePinEvent(pinEvent);
-//                } else {
-//                    Log.w("NexgoDebug", "No pin event received");
-//                }
+                // לוגים על אירועי PIN
+                String pinEvent = intent.getStringExtra("pin_event");
+                if (pinEvent != null) {
+                    Log.i("NexgoDebug", "Pin event received: " + pinEvent);
+                    updatePinEvent(pinEvent);
+                } else {
+                    Log.w("NexgoDebug", "No pin event received");
+                }
             } else {
                 Log.e("NexgoDebug", "Received an unexpected broadcast action");
             }
@@ -2530,6 +2540,94 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
         }
     };
 
+    private void updatePinStars() {
+        PinStarView[] stars = {pinStar4, pinStar3, pinStar2, pinStar1};
+
+        for (int i = 0; i < stars.length; i++) {
+            PinStarView star = stars[i];
+            if (star == null) continue;
+
+            int reverseIndex = stars.length - 1 - i;
+            stars[reverseIndex].setSelectedStar(i < pinDigitsCount);
+        }
+    }
+
+    private PinStarView createPinStar() {
+        PinStarView star = new PinStarView(this);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(100, 100);
+        params.setMargins(18, 0, 18, 0);
+        star.setLayoutParams(params);
+
+        return star;
+    }
+
+    public void showPinScreen(String sdkPinMessage) {
+
+        LinearLayout transactionLayout = findViewById(R.id.transaction_layout);
+        TextView title = findViewById(R.id.transaction_title);
+        EditText amountInput = findViewById(R.id.transaction_amount_input);
+        FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
+        TextView messageText = findViewById(R.id.transaction_message_text);
+        Button transactionButton = findViewById(R.id.transaction_button);
+
+        transactionLayout.setBackgroundColor(Color.parseColor("#0A172C"));
+        transactionLayout.setVisibility(View.VISIBLE);
+        transactionLayout.bringToFront();
+
+        spinnerContainer.setVisibility(View.GONE);
+        transactionButton.setVisibility(View.GONE);
+
+        title.setText("אנא הקלד קוד סודי");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        title.setGravity(Gravity.CENTER);
+        title.setVisibility(View.VISIBLE);
+
+        ViewGroup parent = (ViewGroup) amountInput.getParent();
+        int index = parent.indexOfChild(amountInput);
+        ViewGroup.LayoutParams oldParams = amountInput.getLayoutParams();
+
+        amountInput.setVisibility(View.GONE);
+
+        if (pinDotsLayout != null && pinDotsLayout.getParent() != null) {
+            ((ViewGroup) pinDotsLayout.getParent()).removeView(pinDotsLayout);
+        }
+
+        pinDotsLayout = new LinearLayout(this);
+        pinDotsLayout.setOrientation(LinearLayout.HORIZONTAL);
+        pinDotsLayout.setGravity(Gravity.CENTER);
+        pinDotsLayout.setTranslationY(-50);
+        pinDotsLayout.setLayoutParams(oldParams);
+
+        pinStar1 = createPinStar();
+        pinStar2 = createPinStar();
+        pinStar3 = createPinStar();
+        pinStar4 = createPinStar();
+
+        pinDotsLayout.addView(pinStar4);
+        pinDotsLayout.addView(pinStar3);
+        pinDotsLayout.addView(pinStar2);
+        pinDotsLayout.addView(pinStar1);
+
+        parent.addView(pinDotsLayout, index);
+
+        messageText.setVisibility(View.VISIBLE);
+        messageText.setText(sdkPinMessage);
+        messageText.setTextColor(Color.WHITE);
+        messageText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        messageText.setGravity(Gravity.CENTER);
+        messageText.setTypeface(null, Typeface.BOLD);
+        messageText.setPadding(0, 5, 0, 0);
+        messageText.setTranslationY(-730);
+
+        if (!isPinScreenVisible) {
+            pinDigitsCount = 0;
+        }
+
+        isPinScreenVisible = true;
+        updatePinStars();
+    }
     private void updateTransactionMessage(String message) {
         if (transactionTextView == null) {
             Log.e("NexgoDebug", "transactionTextView is NULL!");
@@ -2553,17 +2651,21 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                     if ("הכנס / הצג / העבר כרטיס".equals(topText)) {
                         topText = "הכנס / הצמד / העבר";
                     }
+                    else if (topText != null && topText.contains("הכנס קוד סודי")) {
+                            showPinScreen(topText);
+                            return;
+                    }
                     else if ("כרטיס זוהה, המתן לאישור".equals(topText)) {
                         topText = "מבצע חיוב...";
-//                    EditText amountInput = findViewById(R.id.transaction_amount_input);
-//                    CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
-//                    FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
-//
-//                        //כשאת רוצה להציג טעינה:
-//                    spinner.setIndicatorColor(
-//                            ContextCompat.getColor(this, R.color.spinner_color1),
-//                            ContextCompat.getColor(this, R.color.spinner_color2)
-//                    );
+                        EditText amountInput = findViewById(R.id.transaction_amount_input);
+                        CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
+                        FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
+
+                            //כשאת רוצה להציג טעינה:
+                        spinner.setIndicatorColor(
+                                ContextCompat.getColor(this, R.color.spinner_color1),
+                                ContextCompat.getColor(this, R.color.spinner_color2)
+                        );
 
 
                     }
@@ -2651,8 +2753,37 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     }
 
     private void updatePinEvent(String pinEvent) {
-        Log.i("MainActivity", "Pin Event: " + pinEvent);
-        runOnUiThread(() -> pinTextView.setText("PIN: " + pinEvent));
+        Log.e("PIN_UI", "updatePinEvent called: " + pinEvent + " count=" + pinDigitsCount);
+
+        runOnUiThread(() -> {
+            switch (pinEvent) {
+                case "PIN_SCREEN_NAVIGATE":
+                    pinDigitsCount = 0;
+                    showPinScreen("אנא הקלד קוד סודי");
+                    break;
+
+                case "PIN_DIGIT_EVENT":
+                    if (pinDigitsCount < 4) {
+                        pinDigitsCount++;
+                    }
+
+                    Log.e("PIN_UI", "digit pressed, count=" + pinDigitsCount);
+                    updatePinStars();
+                    break;
+
+                case "PIN_CLEAR_DIGITS_EVENT":
+                    if (pinDigitsCount > 0) {
+                        pinDigitsCount--;
+                    }
+                    updatePinStars();
+                    break;
+
+                case "PIN_ENTERED_EVENT":
+                    pinDigitsCount = 4;
+                    updatePinStars();
+                    break;
+            }
+        });
     }
     private void checkStoragePermission() {
         List<String> permissionsNeeded = new ArrayList<>();
@@ -3218,12 +3349,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                 isOnLoginScreen = lower.contains("/login") || lower.contains("/logink");
 
                 Log.e("PAGE_FINISHED", lower);
-
-                if (isOnLoginScreen) {
-                    addDeviceIdNativeOverlay();
-                } else {
-                    removeDeviceIdNativeOverlay();
+                if (!("pos.pelecash.co.il".equals(BuildConfig.DOMAIN))){
+                    if (isOnLoginScreen) {
+                        addDeviceIdNativeOverlay();
+                    } else {
+                        removeDeviceIdNativeOverlay();
+                    }
                 }
+
             }
         });
         webView.setOnLongClickListener(new View.OnLongClickListener() {
@@ -3493,6 +3626,56 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
         barcode_scanner.setVisibility(View.GONE);
         input_barcode.setText(result.getText());
+    }
+    private class PinStarView extends View {
+        private boolean selected = false;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        public PinStarView(Context context) {
+            super(context);
+            setWillNotDraw(false);
+
+            paint.setStrokeWidth(8f);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+        }
+
+        public void setSelectedStar(boolean selected) {
+            this.selected = selected;
+            invalidate();
+            postInvalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+
+            paint.setColor(selected ? Color.parseColor("#FF4081") : Color.WHITE);
+
+            // עובי
+            paint.setStrokeWidth(6f);
+
+            paint.setStrokeCap(Paint.Cap.ROUND);
+
+            float cx = getWidth() / 2f;
+            float cy = getHeight() / 2f + 1f;
+
+            float outer = Math.min(getWidth(), getHeight()) * 0.18f;
+            float inner = outer * 0.28f;
+
+            // 5 קווים
+            for (int i = 0; i < 5; i++) {
+
+                double angle = Math.toRadians(-90 + (i * 72));
+
+                float x1 = cx + (float) Math.cos(angle) * inner;
+                float y1 = cy + (float) Math.sin(angle) * inner;
+
+                float x2 = cx + (float) Math.cos(angle) * outer;
+                float y2 = cy + (float) Math.sin(angle) * outer;
+
+                canvas.drawLine(x1, y1, x2, y2, paint);
+            }
+        }
     }
     public class MyJsInterface implements DataListener {
         private Context context;
@@ -4684,32 +4867,32 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             running = 0;
             final String htmlTemp = s;
             String manufacturer = Build.MANUFACTURER.toLowerCase();
-//            NEXGO
-//            if(getPlatform() == PLATFORMS.iPOS && manufacturer.contains("sprd")) {
-//
-//                if (manufacturer.contains("sprd")) {
-//                    String tmp = htmlTemp.replace("max-width:170px;width:170px;","max-width:600px; width:600px;");//15px not 35
-//                    String tmp1 = tmp.replace("max-width: 150px!important;width: 650px;","max-width:600px; width:600px;");//15px not 35
-//                    String cleanedHtml = tmp1.replaceAll("<img[^>]+src=\"https://liv\\.yedatop\\.com/modules/stock/cashbox_fe/inc/barcode\\.php\\?height=20&barcode=[0-9]+\"[^>]*>", "");
-//                    if (!("pos.pelecash.co.il".equals(BuildConfig.DOMAIN)) && barcode != "0")
-//                        MainActivity.this.barcode = barcode;
-//                    NexgoDeviceController nexgoDeviceController = new NexgoDeviceController(context);
-//                    HtmlToBitmapConverter.convertHtmlToBitmap(context, cleanedHtml, bitmap -> {
-//                        if (bitmap != null) {
-//                            Log.d("Bitmap", "Bitmap נוצר בהצלחה!");
-//                            // ניתן לשלוח למדפסת
-//                            String deviceName = Build.MODEL;
-//                            if(deviceName != "N6" && deviceName != "N6"){
-//                                Log.d("PRINT", "נשלח להדפסה!");
-//                                nexgoDeviceController.makeBitmapPrint(bitmap);
-//                            }
-//                        } else {
-//                            Log.e("Bitmap", "שגיאה ביצירת ה-Bitmap");
-//                        }
-//                    });
-//                }
-//            }
-//             NEXGO END
+            //NEXGO
+            if(getPlatform() == PLATFORMS.iPOS && manufacturer.contains("sprd")) {
+
+                if (manufacturer.contains("sprd")) {
+                    String tmp = htmlTemp.replace("max-width:170px;width:170px;","max-width:600px; width:600px;");//15px not 35
+                    String tmp1 = tmp.replace("max-width: 150px!important;width: 650px;","max-width:600px; width:600px;");//15px not 35
+                    String cleanedHtml = tmp1.replaceAll("<img[^>]+src=\"https://(peleliv2|liv)\\.yedatop\\.com/modules/stock/cashbox_fe/inc/barcode\\.php\\?height=20&barcode=[0-9]+\"[^>]*>", "");
+                    if (!("pos.pelecash.co.il".equals(BuildConfig.DOMAIN)) && barcode != "0")
+                        MainActivity.this.barcode = barcode;
+                    NexgoDeviceController nexgoDeviceController = new NexgoDeviceController(context);
+                    HtmlToBitmapConverter.convertHtmlToBitmap(context, cleanedHtml, bitmap -> {
+                        if (bitmap != null) {
+                            Log.d("Bitmap", "Bitmap נוצר בהצלחה!");
+                            // ניתן לשלוח למדפסת
+                            String deviceName = Build.MODEL;
+                            if(deviceName != "N6" && deviceName != "N6"){
+                                Log.d("PRINT", "נשלח להדפסה!");
+                                nexgoDeviceController.makeBitmapPrint(bitmap);
+                            }
+                        } else {
+                            Log.e("Bitmap", "שגיאה ביצירת ה-Bitmap");
+                        }
+                    });
+                }
+            }
+            // NEXGO END
 
             runOnUiThread(new Runnable() {
                 @Override
@@ -4939,29 +5122,44 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                                         String tranType, String creditTerms, String paymentsNumber, String firstPayment, String fixedPayment, String isManual, String credit,
                                         String cardNum, String exDate, String cvv, String id,String masof){
             Log.i("startNexgoPayment-startNexgoPayment" , "startNexgoPayment  -  HERE");
+
+            runOnUiThread(() -> {
+                isPinScreenVisible = false;
+                pinDigitsCount = 0;
+                if (pinDotsLayout != null && pinDotsLayout.getParent() != null) {
+                    ((ViewGroup) pinDotsLayout.getParent()).removeView(pinDotsLayout);
+                    pinDotsLayout = null;
+                }
+                EditText amountInput = findViewById(R.id.transaction_amount_input);
+                if (amountInput != null) amountInput.setVisibility(View.VISIBLE);
+
+                TextView title = findViewById(R.id.transaction_title);
+                if (title != null) title.setText("");
+            });
             double amountValue = Double.parseDouble(amount);
+            currentAmount_for_ashray = amountValue;
             String formattedAmount = String.format("%.2f", amountValue);
             if ("liv2.yedatop".equals(BuildConfig.DOMAIN) || "peleliv2.yedatop".equals(BuildConfig.DOMAIN) || "pos.pelecash.co.il".equals(BuildConfig.DOMAIN)) {
 
                 Runnable ui = new Runnable() {
                     @Override public void run() {
-//                        EditText editText = findViewById(R.id.transaction_amount_input);
-//                        editText.setVisibility(View.VISIBLE);
-//
-//                        CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
-//                        spinner.setVisibility(View.GONE);
-//
-//                        FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
-//                        spinnerContainer.setVisibility(View.GONE);
-//
-//                        editText.setText("₪" + formattedAmount);
-//
-//                        TextView tvDate = findViewById(R.id.tvDate);
-//                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm   dd.MM.yyyy ", Locale.getDefault());
-//                        tvDate.setText(sdf.format(new Date()));
-//
-//                        TextView tvMispar = findViewById(R.id.tvMispar);
-//                        tvMispar.setText(" מסוף:" + masof);
+                        EditText editText = findViewById(R.id.transaction_amount_input);
+                        editText.setVisibility(View.VISIBLE);
+
+                        CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
+                        spinner.setVisibility(View.GONE);
+
+                        FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
+                        spinnerContainer.setVisibility(View.GONE);
+
+                        editText.setText("₪" + formattedAmount);
+
+                        TextView tvDate = findViewById(R.id.tvDate);
+                        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm   dd.MM.yyyy ", Locale.getDefault());
+                        tvDate.setText(sdf.format(new Date()));
+
+                        TextView tvMispar = findViewById(R.id.tvMispar);
+                        tvMispar.setText(" מסוף:" + masof);
                     }
                 };
 
@@ -5273,6 +5471,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             dll = null;
             return "";
         }
+
+
 
 //        public InnerScannerImpl mInnerScanner = null;
 //        @JavascriptInterface
@@ -5861,17 +6061,23 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
-        if (img.getVisibility() == View.VISIBLE)
+
+        if (img.getVisibility() == View.VISIBLE) {
             img.setVisibility(View.GONE);
-        if (webView.getVisibility() == View.GONE)
-            webView.setVisibility(View.VISIBLE);
-        else if (webView.canGoBack()){
-            // webView.goBack();
-        }else
-        {
-            //super.onBackPressed();
+            return;
         }
+
+        if (webView.getVisibility() == View.GONE) {
+            webView.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        if (webView.canGoBack()) {
+            webView.goBack();
+            return;
+        }
+
+
     }
     @Override
     public void onActivityResult (int requestCode, int resultCode, Intent data) {
