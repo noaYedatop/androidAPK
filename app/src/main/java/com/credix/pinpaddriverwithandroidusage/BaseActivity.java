@@ -162,7 +162,7 @@ public class BaseActivity extends AppCompatActivity {
         super.attachBaseContext(updateLocale(newBase));
     }
 
-   public static Context updateLocale(Context context) {
+    public static Context updateLocale(Context context) {
         // קבלת שפת ברירת המחדל ששמורה בהגדרות
         String languageCode = context.getSharedPreferences("Settings", Context.MODE_PRIVATE)
                 .getString("My_Lang", "he");  // ברירת מחדל: עברית
@@ -332,7 +332,7 @@ public class BaseActivity extends AppCompatActivity {
         }
     }
 
-        public void removeProductFromPresentation(int index, double totalprice) {
+    public void removeProductFromPresentation(int index, double totalprice) {
         if (mPresentationScreeen != null) {
             mPresentationScreeen.removeProduct(index,totalprice);
         }
@@ -507,7 +507,7 @@ public class BaseActivity extends AppCompatActivity {
 
 
     public PLATFORMS getPlatform() {
-         if (mIminPrintUtils != null && mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB) != -1 && mIminPrintUtils.getUsbPrinter() != null) {
+        if (mIminPrintUtils != null && mIminPrintUtils.getPrinterStatus(IminPrintUtils.PrintConnectType.USB) != -1 && mIminPrintUtils.getUsbPrinter() != null) {
             return PLATFORMS.IMIN;
 //        } else if (sunmi.aidlUtil.isConnect()) {
 //            return PLATFORMS.SUNMI;
@@ -626,7 +626,7 @@ public class BaseActivity extends AppCompatActivity {
         public void run() {
             Log.i("POS", "mIminPrintUtils.printHtml() sent");
             try{
-                 int added_height = 30;
+                int added_height = 30;
                 if(barcodeBitmap != null){
                     added_height = -250;
                 }
@@ -635,13 +635,13 @@ public class BaseActivity extends AppCompatActivity {
                 }else if (getPlatform() == PLATFORMS.iPOS){
                     // added_height = 50;//לא ברור למה זה
                     //added_height = 0;
-                      added_height = -200;//adytech
+                    added_height = -200;//adytech
                 }
                 else if (getPlatform() == PLATFORMS.IMIN){
                     added_height = -300;
                 }
                 addedReceiptWebView.measure(View.MeasureSpec.makeMeasureSpec(
-                        View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED),
+                                View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED),
                         View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
 //                int height = addedReceiptWebView.getContentHeight() > 850?addedReceiptWebView.getMeasuredHeight(): addedReceiptWebView.getContentHeight();
 
@@ -712,7 +712,7 @@ public class BaseActivity extends AppCompatActivity {
                         clearPrinterResources();
                     }
                 }else
-                    if (getPlatform() == PLATFORMS.UROVO){
+                if (getPlatform() == PLATFORMS.UROVO){
                     mPrinterManager.open();
                     mPrinterManager.setupPage(-1, -1);
                     if (logo != null){
@@ -840,7 +840,7 @@ public class BaseActivity extends AppCompatActivity {
         String deviceName = Build.MODEL;
         //IminSDKManager.opencashBox();
 
-       if (getPlatform() == PLATFORMS.IMIN || (getPlatform() == PLATFORMS.iPOS && deviceName.contains("rk3568_r"))){
+        if (getPlatform() == PLATFORMS.IMIN || (getPlatform() == PLATFORMS.iPOS && deviceName.contains("rk3568_r"))){
             if(manufacturer.contains("rockchip") && deviceName.contains("rk3288")){
                 Log.i("DrawerDebug", "Before sending open drawer command");
                 GPIOUtils.witchStatus((byte) 0x31, fileName);
@@ -865,7 +865,7 @@ public class BaseActivity extends AppCompatActivity {
                 for (UsbDevice device : deviceList.values()) {
                     Log.d("USB", "Found device: " + device.getDeviceName());
                     // פה אתה בודק אם זה המדפסת שלך
-                     usbDevice = device; // זה המדפסת
+                    usbDevice = device; // זה המדפסת
 
                 }
                 int piFlags = PendingIntent.FLAG_UPDATE_CURRENT;
@@ -908,7 +908,7 @@ public class BaseActivity extends AppCompatActivity {
         else if (getPlatform() == PLATFORMS.iPOS){
 
             if (manufacturer.contains("samsung") || manufacturer.contains("sprd")
-                || Objects.equals(deviceName, "N6") || deviceName == "N6" ) {
+                    || Objects.equals(deviceName, "N6") || deviceName == "N6" ) {
 
             }
             else {
@@ -916,7 +916,7 @@ public class BaseActivity extends AppCompatActivity {
             }
         }
         else{
-             Utils.openDrawer(rtPrinter);
+            Utils.openDrawer(rtPrinter);
         }
     }
 
@@ -999,7 +999,7 @@ public class BaseActivity extends AppCompatActivity {
             lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
         }
         //  lp.setMargins(0,0,0,0);// for imin machine
-       lp.setMargins(0,0,100,0);
+        lp.setMargins(0,0,100,0);
         addedReceiptWebView.setLayoutParams(lp);
         receiptWebView.addView(addedReceiptWebView,lp);
 

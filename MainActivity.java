@@ -1565,15 +1565,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
             Log.d(TAG, data);
         }
 
-
-
-
         @JavascriptInterface
-        public void open_drw(){
-
-            openDrawer();
+        public void open_drw() throws InterruptedException {
+            IPlatformDriver driver = PlatformManager.getDriver(context);
+            driver.openDrawer();
         }
-
 
         @JavascriptInterface
         public void print_invoice3( String s){

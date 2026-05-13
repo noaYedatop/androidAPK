@@ -2365,7 +2365,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
     @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
         if(("pos.pelecash.co.il".equals(BuildConfig.DOMAIN)) || ("liv.yedatop.com".equals(BuildConfig.DOMAIN))){
-             return true;
+            return true;
         }
         if (!isOnLoginScreen) {
             return super.dispatchTouchEvent(ev);
@@ -2655,8 +2655,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                         topText = "הכנס / הצמד / העבר";
                     }
                     else if (topText != null && topText.contains("הכנס קוד סודי")) {
-                            showPinScreen(topText);
-                            return;
+                        showPinScreen(topText);
+                        return;
                     }
                     else if ("כרטיס זוהה, המתן לאישור".equals(topText)) {
                         topText = "מבצע חיוב...";
@@ -2664,7 +2664,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                         CircularProgressIndicator spinner = findViewById(R.id.loadingSpinner);
                         FrameLayout spinnerContainer = findViewById(R.id.spinnerContainer);
 
-                            //כשאת רוצה להציג טעינה:
+                        //כשאת רוצה להציג טעינה:
                         spinner.setIndicatorColor(
                                 ContextCompat.getColor(this, R.color.spinner_color1),
                                 ContextCompat.getColor(this, R.color.spinner_color2)
@@ -4027,7 +4027,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 //                    return MainActivity.this.getFromUsbWeightScangle();
 //                }
 //                return MainActivity.this.readWeightDirectlyFromUsb(context);
-                 return MainActivity.this.getFromIminWeight();
+                return MainActivity.this.getFromIminWeight();
             }
             return 0;
         }

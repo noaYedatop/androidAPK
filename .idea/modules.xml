@@ -2,11 +2,19 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+<<<<<<< HEAD
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/android-project.iml" filepath="$PROJECT_DIR$/.idea/modules/android-project.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/android-project.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/android-project.app.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/android-project.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/android-project.app.androidTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/android-project.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/android-project.app.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/android-project.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/android-project.app.unitTest.iml" />
+=======
+      <module fileurl="file://$PROJECT_DIR$/.idea/androidAPK.iml" filepath="$PROJECT_DIR$/.idea/androidAPK.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidAPK.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidAPK.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidAPK.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidAPK.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidAPK.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidAPK.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/androidAPK.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/androidAPK.app.unitTest.iml" />
+>>>>>>> d8446016ec138a452ad71c6da1b91d7638294fa2
     </modules>
   </component>
 </project>

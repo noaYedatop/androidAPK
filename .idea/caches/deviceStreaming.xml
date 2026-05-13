@@ -1223,6 +1223,21 @@
         <PersistentDeviceSelectionData>
           <option name="api" value="36" />
           <option name="brand" value="samsung" />
+<<<<<<< HEAD
+=======
+          <option name="codename" value="m1q" />
+          <option name="id" value="m1q" />
+          <option name="labId" value="google" />
+          <option name="manufacturer" value="Samsung" />
+          <option name="name" value="Galaxy S26" />
+          <option name="screenDensity" value="480" />
+          <option name="screenX" value="1080" />
+          <option name="screenY" value="2340" />
+        </PersistentDeviceSelectionData>
+        <PersistentDeviceSelectionData>
+          <option name="api" value="36" />
+          <option name="brand" value="samsung" />
+>>>>>>> d8446016ec138a452ad71c6da1b91d7638294fa2
           <option name="codename" value="m2q" />
           <option name="id" value="m2q" />
           <option name="labId" value="google" />
