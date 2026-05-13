@@ -96,7 +96,8 @@ public class BackOfficeActivity extends BaseActivity {
         url = intent.getStringExtra("URL");
 
         String presentType = intent.getStringExtra("present_type");
-        String presentUsername = intent.getStringExtra("present_username");
+        String presentUsername = intent.
+                getStringExtra("present_username");
 
         if (presentType != null && presentUsername != null) {
             if (presentType.equals("1")) {
