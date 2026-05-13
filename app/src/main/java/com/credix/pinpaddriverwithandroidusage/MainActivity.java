@@ -2364,6 +2364,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
 
     @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if(("pos.pelecash.co.il".equals(BuildConfig.DOMAIN)) || ("liv.yedatop.com".equals(BuildConfig.DOMAIN))){
+             return true;
+        }
         if (!isOnLoginScreen) {
             return super.dispatchTouchEvent(ev);
         }
@@ -3349,7 +3352,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener ,
                 isOnLoginScreen = lower.contains("/login") || lower.contains("/logink");
 
                 Log.e("PAGE_FINISHED", lower);
-                if (!("pos.pelecash.co.il".equals(BuildConfig.DOMAIN))){
+                if (!("pos.pelecash.co.il".equals(BuildConfig.DOMAIN)) && !("liv.yedatop.com".equals(BuildConfig.DOMAIN))){
                     if (isOnLoginScreen) {
                         addDeviceIdNativeOverlay();
                     } else {

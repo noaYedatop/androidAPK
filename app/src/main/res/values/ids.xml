@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="transaction_layout" type="id"/>
+    <item name="transaction_title" type="id"/>
+    <item name="transaction_amount_input" type="id"/>
+    <item name="spinnerContainer" type="id"/>
+    <item name="transaction_message_text" type="id"/>
+    <item name="transaction_button" type="id"/>
+    <item name="loadingSpinner" type="id"/>
+    <item name="tvDate" type="id"/>
+    <item name="tvMispar" type="id"/>
+</resources>
